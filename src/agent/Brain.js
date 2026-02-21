@@ -8,28 +8,39 @@ const MODEL_QUEUE = [
   "gemini-3-flash",
 ];
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
+/** Auth header for backend fallback when Gemini quota is exceeded or unavailable. */
+function getAuthHeaders() {
+  const token = typeof localStorage !== "undefined" ? localStorage.getItem("token") : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 /**
  * Centralized AI Brain: control + access over the entire app, and raw generation for features (quiz, video, syllabus, etc.).
  * - think(): control flow — understands user intent and returns { text, action? }; runs dispatch when provided.
  * - chat(): conversational Q&A for student doubts (no app control).
  * - generateContent(): raw prompt/response for quiz, video rec, syllabus parse, file sort, etc.
+ * When Gemini quota is exceeded or unavailable, think() and chat() fall back to the backend (OpenRouter → Gemini).
  */
 export class Brain {
   constructor(getAppState = null, dispatch = null) {
     this.getAppState = getAppState;
     this.dispatch = dispatch;
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.controlModel = this.genAI.getGenerativeModel({ model: MODEL_CONTROL });
-    this.chatModel = this.genAI.getGenerativeModel({
-      model: MODEL_CHAT,
-      systemInstruction: `You are ZoneOut Study Buddy — a friendly study expert for students. Answer doubts clearly with bullet points and short explanations. Keep replies helpful and under 4–5 sentences. You do NOT control the app; you only help with study questions and concepts.`,
-    });
+    this.genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+    this.controlModel = this.genAI?.getGenerativeModel({ model: MODEL_CONTROL }) ?? null;
+    this.chatModel = this.genAI
+      ? this.genAI.getGenerativeModel({
+          model: MODEL_CHAT,
+          systemInstruction: `You are ZoneOut Study Buddy — a friendly study expert for students. Answer doubts clearly with bullet points and short explanations. Keep replies helpful and under 4–5 sentences. You do NOT control the app; you only help with study questions and concepts.`,
+        })
+      : null;
   }
 
   /**
    * Control mode: user says something → Brain returns reply text and optional action; dispatch runs the action.
-   * getAppState and dispatch must be provided when using think().
+   * Uses Gemini when available; falls back to backend /api/ai/think when quota exceeded or no key.
    */
   async think(userInput) {
     if (!this.getAppState || !this.dispatch) {
@@ -51,13 +62,31 @@ AVAILABLE ACTIONS (return JSON "action" only when user asks to do something):
 Respond STRICTLY in RAW JSON only:
 { "text": "your reply", "action": { ... } optional }`;
 
-    const result = await this.controlModel.generateContent(prompt);
-    const text = result.response.text();
-    const parsed = this.cleanAndParseJSON(text);
-    if (parsed.action) {
-      await this.dispatch(parsed.action);
+    try {
+      if (this.controlModel) {
+        const result = await this.controlModel.generateContent(prompt);
+        const text = result.response.text();
+        const parsed = this.cleanAndParseJSON(text);
+        if (parsed.action) await this.dispatch(parsed.action);
+        return parsed.text;
+      }
+    } catch (e) {
+      // Fall through to backend (quota, no key, network, etc.)
     }
-    return parsed.text;
+
+    if (!API_BASE) throw new Error("AI unavailable. Set VITE_GEMINI_API_KEY or run the backend with VITE_API_URL.");
+    const res = await fetch(`${API_BASE}/api/ai/think`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({ userInput, context }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || "AI think failed");
+    }
+    const { text: replyText, action } = await res.json();
+    if (action) await this.dispatch(action);
+    return replyText || "";
   }
 
   _buildControlContext(state) {
@@ -85,24 +114,48 @@ Respond STRICTLY in RAW JSON only:
 
   /**
    * Chat mode: general student queries and doubts. No app control. Returns reply text.
+   * Uses Gemini when available; falls back to backend /api/ai/chat when quota exceeded or no key.
    */
   async chat(userMessage, conversationHistory = []) {
     const history = conversationHistory
       .filter((m) => m.role && m.content != null)
-      .map((m) => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      }));
-    const chatSession = this.chatModel.startChat({ history });
-    const result = await chatSession.sendMessage(userMessage);
-    return result.response.text();
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    try {
+      if (this.chatModel) {
+        const geminiHistory = history.map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        }));
+        const chatSession = this.chatModel.startChat({ history: geminiHistory });
+        const result = await chatSession.sendMessage(userMessage);
+        return result.response.text();
+      }
+    } catch (e) {
+      // Fall through to backend
+    }
+
+    if (!API_BASE) throw new Error("AI unavailable. Set VITE_GEMINI_API_KEY or run the backend with VITE_API_URL.");
+    const res = await fetch(`${API_BASE}/api/ai/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({ message: userMessage, history }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || "AI chat failed");
+    }
+    const data = await res.json();
+    return data.response ?? "";
   }
 
   /**
    * Raw generation with retry (for quiz, video, syllabus, file sort, etc.).
    * Returns GenerateContentResult; use response.text() then cleanAndParseJSON if needed.
+   * Requires Gemini key; no backend fallback for this method yet.
    */
   async generateContent(prompt, options = {}) {
+    if (!this.genAI) throw new Error("AI unavailable for this feature. Set VITE_GEMINI_API_KEY or use backend.");
     const { currentModelIndex = 0, setModelIndex } = options;
     let attempt = 0;
     let activeIndex = typeof currentModelIndex === "number" ? currentModelIndex : 0;

@@ -144,7 +144,18 @@ The application will start locally using Vite.
 | Variable | Description |
 |----------|-------------|
 | VITE_API_URL | Backend API base URL |
-| VITE_GEMINI_API_KEY | Gemini AI API key |
+| VITE_GEMINI_API_KEY | Gemini AI API key (optional if using backend fallback) |
+
+### AI when Gemini quota is exceeded
+
+Study Buddy (think + chat) keeps working when the **frontend** Gemini quota is used up:
+
+1. **Frontend** tries Gemini first (using `VITE_GEMINI_API_KEY`). If the call fails (e.g. 429 quota), it falls back to your **backend**.
+2. **Backend** serves AI via `POST /api/ai/think` and `POST /api/ai/chat`. It uses **OpenRouter** first, then **Gemini**, so you need at least one of these set in the **server** `.env`:
+   - `OPENROUTER_API_KEY` – [OpenRouter](https://openrouter.ai) (many models, often has free tier).
+   - `GEMINI_API_KEY` – same as Gemini; useful if the server has its own quota.
+
+With the backend running and at least one of these keys set, AI continues to work even when the browser’s Gemini key hits its limit. The server’s `server/.env` should include `OPENROUTER_API_KEY` and/or `GEMINI_API_KEY` for fallback.
 
 ---
 
