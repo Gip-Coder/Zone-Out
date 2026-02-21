@@ -220,6 +220,7 @@ export default function App() {
   const readFileAsUrl = (file) => URL.createObjectURL(file);
 
   // --- MANUAL FALLBACKS (when API key exhausted or AI fails) ---
+  /** General heading-based parser (Module/Chapter/Unit, ##, numbered lines). */
   const manualParseSyllabus = (text) => {
     if (!text || !text.trim()) return [{ title: "General", topics: ["Overview"] }];
     const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
@@ -237,6 +238,27 @@ export default function App() {
     }
     if (current) modules.push(current);
     if (modules.length === 0) return [{ title: "General", topics: lines.slice(0, 20).map((l) => l.substring(0, 80)) }];
+    return modules;
+  };
+
+  /** Tabular / CO (Course Outcome) style syllabus parser. */
+  const improvedManualParse = (text) => {
+    if (!text || !text.trim()) return [];
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const modules = [];
+    let current = null;
+    lines.forEach((line) => {
+      const moduleMatch = line.match(/^\d+\s*-\s*.+?- CO:/i);
+      const topicMatch = line.match(/^\d+\s*-\s*(.+)$/);
+      if (moduleMatch) {
+        if (current) modules.push(current);
+        current = { title: line.split("\t")[0].trim(), topics: [] };
+      } else if (topicMatch && current) {
+        const topic = topicMatch[1].split("\t")[0].trim();
+        if (topic) current.topics.push(topic);
+      }
+    });
+    if (current) modules.push(current);
     return modules;
   };
 
@@ -478,43 +500,73 @@ export default function App() {
   };
 
   const handleCreateCourse = async (fileUpload = null) => {
-    if (!newCode || !newName) return showToast("Enter details", "error");
-    setIsProcessing(true); setStatusMsg("Reading Syllabus...");
+    if (!newCode?.trim() || !newName?.trim()) return showToast("Enter details", "error");
+    setIsProcessing(true);
+    setStatusMsg("Reading Syllabus...");
     let text = "";
     try {
-      if (syllabusMode === 'pdf' && fileUpload) text = await extractTextFromPDF(fileUpload);
-      else text = rawSyllabusText;
+      if (syllabusMode === "pdf" && fileUpload) text = await extractTextFromPDF(fileUpload);
+      else text = rawSyllabusText || "";
+      text = (text || "").trim();
 
-      if (!text && syllabusMode !== 'manual') throw new Error("No text content found");
-
-      let finalModules;
-      if (syllabusMode === 'manual' && manualModuleLines.trim()) {
+      if (syllabusMode === "manual") {
         const lines = manualModuleLines.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-        finalModules = lines.length ? lines.map((t) => ({ title: t, topics: ["Review this module"] })) : [{ title: "General", topics: ["Overview"] }];
-      } else if (text) {
-        try {
-          setStatusMsg("AI extracting structure...");
-          const prompt = `Analyze syllabus. Return RAW JSON ONLY. Format: { "syllabus": [ { "title": "Module 1: Name", "topics": ["1.1 A", "1.2 B"] } ] } INPUT: "${text.substring(0, 25000)}"`;
-          const data = await callBrainGenerate(prompt);
-          finalModules = (data.syllabus && data.syllabus.length > 0) ? data.syllabus : manualParseSyllabus(text);
-        } catch (e) {
-          setStatusMsg("Using manual parse...");
-          finalModules = manualParseSyllabus(text);
-          showToast("AI unavailable; structure parsed manually.", "success");
-        }
-      } else {
-        finalModules = [{ title: "General", topics: ["Overview"] }];
+        const finalModules = lines.length ? lines.map((t) => ({ title: t, topics: ["Review this module"] })) : [{ title: "General", topics: ["Overview"] }];
+        const newCourse = { id: Date.now(), code: newCode.trim().toUpperCase(), name: newName.trim(), syllabus: "", modules: finalModules, files: {}, moduleNotes: {} };
+        newCourse.modules.forEach(m => { newCourse.files[m.title] = []; newCourse.moduleNotes[m.title] = ""; });
+        setCourses(prev => [...prev, newCourse]);
+        await dbAPI.save(STORE_COURSES, newCourse);
+        resetForm();
+        setManualModuleLines("");
+        showToast("Course Added Successfully");
+        setIsProcessing(false);
+        return;
       }
 
-      const newCourse = { id: Date.now(), code: newCode.toUpperCase(), name: newName, syllabus: text || "", modules: finalModules, files: {}, moduleNotes: {} };
-      newCourse.modules.forEach(m => { newCourse.files[m.title] = []; newCourse.moduleNotes[m.title] = ""; });
+      if (!text) {
+        showToast("No syllabus text found.", "error");
+        setIsProcessing(false);
+        return;
+      }
 
+      const looksTabular = text.includes("\t") || text.includes("Bloom") || /Module Detail/i.test(text);
+      let finalModules = null;
+
+      if (!looksTabular) {
+        try {
+          setStatusMsg("AI extracting structure...");
+          const cleanedText = text.replace(/\t/g, " | ").replace(/\s{2,}/g, " ").substring(0, 20000);
+          const prompt = `Analyze syllabus and return RAW JSON ONLY. Format: { "syllabus": [ { "title": "Module 1: Name", "topics": ["Topic A", "Topic B"] } ] } INPUT: "${cleanedText}"`;
+          const data = await callBrainGenerate(prompt);
+          if (Array.isArray(data?.syllabus) && data.syllabus.length > 0) finalModules = data.syllabus;
+        } catch (e) {
+          console.warn("AI parsing failed:", e);
+        }
+      }
+
+      if (!finalModules || finalModules.length === 0) {
+        setStatusMsg("Using structured parser...");
+        finalModules = improvedManualParse(text);
+        if (!finalModules.length) finalModules = manualParseSyllabus(text);
+        if (!finalModules.length) {
+          const lines = text.split(/\n/).map((l) => l.trim()).filter(Boolean);
+          finalModules = [{ title: "General", topics: lines.slice(0, 10).map((l) => l.substring(0, 80)) }];
+        }
+        if (looksTabular) showToast("Tabular syllabus parsed; AI skipped.", "success");
+        else showToast("AI unavailable; structure parsed manually.", "success");
+      }
+
+      const newCourse = { id: Date.now(), code: newCode.trim().toUpperCase(), name: newName.trim(), syllabus: text, modules: finalModules, files: {}, moduleNotes: {} };
+      newCourse.modules.forEach(m => { newCourse.files[m.title] = []; newCourse.moduleNotes[m.title] = ""; });
       setCourses(prev => [...prev, newCourse]);
       await dbAPI.save(STORE_COURSES, newCourse);
       resetForm();
       setManualModuleLines("");
       showToast("Course Added Successfully");
-    } catch (e) { showToast("Failed to create course.", "error"); }
+    } catch (e) {
+      console.error("Course creation failed:", e);
+      showToast("Failed to create course.", "error");
+    }
     setIsProcessing(false);
   };
 
