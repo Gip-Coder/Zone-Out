@@ -1,0 +1,289 @@
+import { useState, useContext, useEffect, useRef } from "react";
+import { ThemeContext } from "../context/ThemeContext";
+import { motion } from "framer-motion";
+import { Sun, Moon } from "lucide-react";
+
+export default function Auth({ setIsAuthenticated }) {
+  const { theme, toggleTheme } = useContext(ThemeContext);
+  const canvasRef = useRef(null);
+
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  const API_URL = `${import.meta.env.VITE_API_URL}/api/auth`;
+
+  // Detect screen resize
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // ================= PARTICLES =================
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    let particles = [];
+    for (let i = 0; i < 60; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 2,
+        dx: (Math.random() - 0.5) * 0.4,
+        dy: (Math.random() - 0.5) * 0.4,
+      });
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      particles.forEach((p) => {
+        p.x += p.dx;
+        p.y += p.dy;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    return () => window.removeEventListener("resize", resizeCanvas);
+  }, []);
+
+  // ================= LOGIN =================
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const res = await fetch(`${API_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setIsAuthenticated(true);
+    }
+  };
+
+  return (
+    <div style={{ ...styles.wrapper, flexDirection: isMobile ? "column" : "row" }}>
+      <div style={styles.gradient}></div>
+      <canvas ref={canvasRef} style={styles.canvas}></canvas>
+
+      {!isMobile && (
+        <>
+          <motion.div animate={{ y: [0, -30, 0] }} transition={{ duration: 6, repeat: Infinity }} style={styles.orb1}/>
+          <motion.div animate={{ y: [0, 20, 0] }} transition={{ duration: 8, repeat: Infinity }} style={styles.orb2}/>
+        </>
+      )}
+
+      <button onClick={toggleTheme} style={styles.themeToggle}>
+        {theme === "dark" ? <Sun size={18}/> : <Moon size={18}/>}
+      </button>
+
+      <div style={{ ...styles.content, flexDirection: isMobile ? "column" : "row", gap: isMobile ? "30px" : "60px" }}>
+
+        {/* BRAND */}
+        <motion.div
+          initial={{ opacity: 0, x: isMobile ? 0 : -60 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8 }}
+          style={{ ...styles.left, textAlign: isMobile ? "center" : "left" }}
+        >
+          <img src="/logo.svg" alt="ZoneOut Logo" style={styles.logo}/>
+          <h1 style={styles.title}>ZoneOut</h1>
+          <p style={styles.subtitle}>AI-powered productivity for deep focus.</p>
+        </motion.div>
+
+        {/* FORM */}
+        <motion.div
+          initial={{ opacity: 0, x: isMobile ? 0 : 60 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8 }}
+          style={{ ...styles.right, width: isMobile ? "100%" : "420px" }}
+        >
+          <motion.div whileHover={!isMobile ? { scale: 1.02 } : {}} style={{ ...styles.card, padding: isMobile ? "28px" : "42px" }}>
+            <h2 style={{ marginBottom: "20px", textAlign: "center" }}>Sign in</h2>
+
+            <form onSubmit={handleSubmit} style={styles.form}>
+              <input
+                type="email"
+                placeholder="Email"
+                style={styles.input}
+                onChange={(e)=>setForm({...form, email:e.target.value})}
+              />
+
+              <input
+                type="password"
+                placeholder="Password"
+                style={styles.input}
+                onChange={(e)=>setForm({...form, password:e.target.value})}
+              />
+
+              <motion.button
+                whileHover={!isMobile ? { scale: 1.04 } : {}}
+                whileTap={{ scale: 0.97 }}
+                style={styles.button}
+              >
+                Sign in
+              </motion.button>
+            </form>
+          </motion.div>
+        </motion.div>
+
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  wrapper: {
+    minHeight: "100vh",
+    position: "relative",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: "40px 20px",
+    background: "var(--bg-primary)",
+    overflowX: "hidden"
+  },
+
+  gradient: {
+    position: "absolute",
+    width: "200%",
+    height: "200%",
+    background:
+      "radial-gradient(circle at 25% 25%, var(--accent-primary), transparent 60%), radial-gradient(circle at 75% 75%, var(--accent-secondary), transparent 60%)",
+    animation: "gradientShift 28s ease-in-out infinite",
+    opacity: 0.25,
+    zIndex: 0
+  },
+
+  canvas: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    zIndex: 1,
+    opacity: 0.3
+  },
+
+  orb1: {
+    position: "absolute",
+    width: "250px",
+    height: "250px",
+    background: "var(--accent-primary)",
+    filter: "blur(120px)",
+    top: "15%",
+    left: "15%",
+    opacity: 0.4,
+    zIndex: 0
+  },
+
+  orb2: {
+    position: "absolute",
+    width: "220px",
+    height: "220px",
+    background: "var(--accent-secondary)",
+    filter: "blur(120px)",
+    bottom: "20%",
+    right: "20%",
+    opacity: 0.4,
+    zIndex: 0
+  },
+
+  content: {
+    display: "flex",
+    width: "100%",
+    maxWidth: "1100px",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2
+  },
+
+  left: {
+    maxWidth: "420px"
+  },
+
+  logo: {
+    width: "80px",
+    height: "80px",
+    borderRadius: "50%",
+    padding: "10px",
+    background: "var(--bg-secondary)",
+    boxShadow: "0 0 30px var(--accent-primary)",
+    marginBottom: "20px"
+  },
+
+  title: {
+    fontSize: "2.5rem",
+    fontWeight: "700",
+    marginBottom: "12px"
+  },
+
+  subtitle: {
+    color: "var(--text-secondary)",
+    fontSize: "0.95rem",
+    lineHeight: "1.6"
+  },
+
+  right: {},
+
+  card: {
+    borderRadius: "20px",
+    background: "var(--bg-secondary)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    backdropFilter: "blur(12px)",
+    boxShadow: "0 20px 50px rgba(0,0,0,0.4)"
+  },
+
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "18px"
+  },
+
+  input: {
+    padding: "14px",
+    borderRadius: "12px",
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "transparent",
+    color: "var(--text-primary)",
+    fontSize: "0.95rem"
+  },
+
+  button: {
+    padding: "14px",
+    borderRadius: "12px",
+    border: "none",
+    background: "var(--button-gradient)",
+    color: "#fff",
+    fontWeight: "600",
+    cursor: "pointer",
+    boxShadow: "0 10px 30px rgba(124,58,237,0.35)"
+  },
+
+  themeToggle: {
+    position: "absolute",
+    top: "20px",
+    right: "20px",
+    background: "var(--bg-secondary)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    padding: "10px",
+    borderRadius: "50%",
+    cursor: "pointer",
+    zIndex: 3
+  }
+};
