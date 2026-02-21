@@ -23,7 +23,13 @@ router.post("/register", async (req, res) => {
       password: hashedPassword,
     });
 
-    res.status(201).json({ message: "User registered successfully" });
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+    const safeUser = { id: user._id, name: user.name, email: user.email };
+    res.status(201).json({ message: "User registered successfully", token, user: safeUser });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -47,8 +53,8 @@ router.post("/login", async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-
-    res.json({ token });
+    const safeUser = { id: user._id, name: user.name, email: user.email };
+    res.json({ token, user: safeUser });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

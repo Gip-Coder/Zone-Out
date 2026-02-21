@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  LogOut,
 } from 'lucide-react';
 
 
@@ -57,16 +58,31 @@ const activeStyle = {
   boxShadow: 'var(--glow-soft, 0 4px 14px rgba(124,58,237,0.35))',
 };
 
-export default function Header({ onLogout }) {
+export default function Header({ onLogout, user }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const close = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserMenuOpen(false);
+    };
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUserMenuOpen(false);
     onLogout?.();
     navigate('/');
   };
+
+  const displayName = user?.name || user?.email || 'User';
+  const initial = (displayName && displayName[0]) ? displayName[0].toUpperCase() : '?';
 
   return (
     <header style={headerStyle}>
@@ -115,13 +131,39 @@ export default function Header({ onLogout }) {
         </nav>
 
         <div style={rightStyle}>
-          <button
-            type="button"
-            onClick={handleLogout}
-            style={logoutBtnStyle}
-          >
-            Logout
-          </button>
+          {/* User bubble + dropdown */}
+          <div ref={userMenuRef} style={userBubbleWrap}>
+            <button
+              type="button"
+              aria-label="Account menu"
+              style={userBubbleStyle}
+              onClick={() => setUserMenuOpen((o) => !o)}
+            >
+              <span style={userBubbleInitial}>{initial}</span>
+            </button>
+            {userMenuOpen && (
+              <div style={userDropdownStyle}>
+                <div style={userDropdownHeader}>
+                  <span style={userDropdownName}>{displayName}</span>
+                  {user?.email && user.email !== displayName && (
+                    <span style={userDropdownEmail}>{user.email}</span>
+                  )}
+                </div>
+                <NavLink
+                  to="/profile"
+                  style={userDropdownItem}
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  <User size={16} />
+                  Profile
+                </NavLink>
+                <button type="button" style={userDropdownItem} onClick={handleLogout}>
+                  <LogOut size={16} />
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Mobile menu toggle */}
           <button
@@ -263,5 +305,80 @@ const mobileNavStyle = {
   gap: '4px',
   borderTop: '1px solid rgba(255,255,255,0.06)',
   background: 'rgba(0,0,0,0.2)',
+};
+
+const userBubbleWrap = { position: 'relative' };
+
+const userBubbleStyle = {
+  width: '40px',
+  height: '40px',
+  borderRadius: '50%',
+  border: '2px solid rgba(255,255,255,0.2)',
+  background: 'var(--button-gradient)',
+  color: '#fff',
+  fontWeight: '700',
+  fontSize: '16px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 0,
+  boxShadow: '0 4px 14px rgba(124,58,237,0.35)',
+};
+
+const userBubbleInitial = { lineHeight: 1 };
+
+const userDropdownStyle = {
+  position: 'absolute',
+  top: '100%',
+  right: 0,
+  marginTop: '8px',
+  minWidth: '200px',
+  background: 'var(--bg-secondary, rgba(28,28,36,0.98))',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 'var(--radius-lg, 12px)',
+  padding: '8px',
+  boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '2px',
+};
+
+const userDropdownHeader = {
+  padding: '10px 12px',
+  borderBottom: '1px solid rgba(255,255,255,0.08)',
+  marginBottom: '4px',
+};
+
+const userDropdownName = {
+  display: 'block',
+  fontWeight: '600',
+  color: 'var(--text-primary)',
+  fontSize: '14px',
+};
+
+const userDropdownEmail = {
+  display: 'block',
+  fontSize: '12px',
+  color: 'var(--text-secondary)',
+  marginTop: '2px',
+};
+
+const userDropdownItem = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px',
+  padding: '10px 12px',
+  borderRadius: 'var(--radius-md, 8px)',
+  color: 'var(--text-secondary)',
+  textDecoration: 'none',
+  fontWeight: '500',
+  fontSize: '14px',
+  border: 'none',
+  background: 'none',
+  cursor: 'pointer',
+  width: '100%',
+  textAlign: 'left',
+  transition: 'all 0.2s ease',
 };
 

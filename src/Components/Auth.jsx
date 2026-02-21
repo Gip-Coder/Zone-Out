@@ -1,14 +1,18 @@
 import { useState, useContext, useEffect, useRef } from "react";
 import { ThemeContext } from "../context/ThemeContext";
+import { ToastContext } from "../context/ToastContext";
 import { motion } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 
 export default function Auth({ setIsAuthenticated }) {
   const { theme, toggleTheme } = useContext(ThemeContext);
+  const { success: toastSuccess, error: toastError } = useContext(ToastContext);
   const canvasRef = useRef(null);
 
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [mode, setMode] = useState("login"); // "login" | "register"
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [loading, setLoading] = useState(false);
 
   const API_URL = `${import.meta.env.VITE_API_URL}/api/auth`;
 
@@ -61,20 +65,34 @@ export default function Auth({ setIsAuthenticated }) {
     return () => window.removeEventListener("resize", resizeCanvas);
   }, []);
 
-  // ================= LOGIN =================
+  // ================= LOGIN / REGISTER =================
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch(`${API_URL}/login`, {
+    setLoading(true);
+    const endpoint = mode === "login" ? "login" : "register";
+    const body = mode === "login"
+      ? { email: form.email, password: form.password }
+      : { name: form.name, email: form.email, password: form.password };
+    if (mode === "register" && !form.name?.trim()) {
+      toastError("Name is required");
+      setLoading(false);
+      return;
+    }
+    const res = await fetch(`${API_URL}/${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(body),
     });
-
     const data = await res.json();
-    if (res.ok) {
+    setLoading(false);
+    if (res.ok && data.token) {
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+      if (mode === "login") toastSuccess("Welcome back!");
+      else toastSuccess("Account created successfully.");
       setIsAuthenticated(true);
+    } else {
+      toastError(data.message || data.error || "Something went wrong");
     }
   };
 
@@ -116,31 +134,61 @@ export default function Auth({ setIsAuthenticated }) {
           style={{ ...styles.right, width: isMobile ? "100%" : "420px" }}
         >
           <motion.div whileHover={!isMobile ? { scale: 1.02 } : {}} style={{ ...styles.card, padding: isMobile ? "28px" : "42px" }}>
-            <h2 style={{ marginBottom: "20px", textAlign: "center" }}>Sign in</h2>
+            <h2 style={{ marginBottom: "20px", textAlign: "center" }}>
+              {mode === "login" ? "Sign in" : "Create account"}
+            </h2>
 
             <form onSubmit={handleSubmit} style={styles.form}>
+              {mode === "register" && (
+                <input
+                  type="text"
+                  placeholder="Name"
+                  value={form.name}
+                  style={styles.input}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
+              )}
               <input
                 type="email"
                 placeholder="Email"
+                value={form.email}
                 style={styles.input}
-                onChange={(e)=>setForm({...form, email:e.target.value})}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
-
               <input
                 type="password"
                 placeholder="Password"
+                value={form.password}
                 style={styles.input}
-                onChange={(e)=>setForm({...form, password:e.target.value})}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
               />
-
               <motion.button
-                whileHover={!isMobile ? { scale: 1.04 } : {}}
+                type="submit"
+                disabled={loading}
+                whileHover={!isMobile && !loading ? { scale: 1.04 } : {}}
                 whileTap={{ scale: 0.97 }}
-                style={styles.button}
+                style={{ ...styles.button, opacity: loading ? 0.8 : 1 }}
               >
-                Sign in
+                {loading ? "..." : mode === "login" ? "Sign in" : "Register"}
               </motion.button>
             </form>
+            <p style={styles.toggle}>
+              {mode === "login" ? (
+                <>
+                  New user?{" "}
+                  <button type="button" style={styles.toggleBtn} onClick={() => setMode("register")}>
+                    Create account
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have an account?{" "}
+                  <button type="button" style={styles.toggleBtn} onClick={() => setMode("login")}>
+                    Sign in
+                  </button>
+                </>
+              )}
+            </p>
           </motion.div>
         </motion.div>
 
@@ -285,5 +333,22 @@ const styles = {
     borderRadius: "50%",
     cursor: "pointer",
     zIndex: 3
+  },
+
+  toggle: {
+    textAlign: "center",
+    marginTop: "16px",
+    fontSize: "14px",
+    color: "var(--text-secondary)"
+  },
+
+  toggleBtn: {
+    background: "none",
+    border: "none",
+    color: "var(--accent-primary, #a78bfa)",
+    cursor: "pointer",
+    fontWeight: "600",
+    padding: 0,
+    textDecoration: "underline"
   }
 };

@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { ToastContext } from './context/ToastContext';
 import Timer from './Components/Timer';
 import MusicPlayer from './Components/MusicPlayer';
 import StudyGoals from './Components/StudyGoals';
@@ -16,18 +17,39 @@ import FocusTimerPage from './pages/FocusTimerPage';
 import MusicPage from './pages/MusicPage';
 import AIPage from './pages/AIPage';
 import PlaceholderPage from './pages/PlaceholderPage';
+import ProfilePage from './pages/ProfilePage';
 
 export default function App() {
+  const { info: toastInfo } = useContext(ToastContext);
 
   // =============================
   // 🔐 AUTH STATE
   // =============================
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) setIsAuthenticated(true);
+    if (token) {
+      setIsAuthenticated(true);
+      try {
+        const u = localStorage.getItem("user");
+        setUser(u ? JSON.parse(u) : null);
+      } catch {
+        setUser(null);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    try {
+      const u = localStorage.getItem("user");
+      setUser(u ? JSON.parse(u) : null);
+    } catch {
+      setUser(null);
+    }
+  }, [isAuthenticated]);
 
   // =============================
   // GLOBAL APP STATE
@@ -150,7 +172,10 @@ export default function App() {
   }
 
   const handleLogout = () => {
+    setUser(null);
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    toastInfo("Logged out.");
     setIsAuthenticated(false);
   };
 
@@ -165,7 +190,7 @@ export default function App() {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
-      <Header onLogout={handleLogout} />
+      <Header onLogout={handleLogout} user={user} />
 
       <main style={mainContentStyle}>
         <Routes>
@@ -180,7 +205,7 @@ export default function App() {
           <Route path="/study-groups" element={<PlaceholderPage title="Study Groups" />} />
           <Route path="/resources" element={<PlaceholderPage title="Resources" />} />
           <Route path="/settings" element={<PlaceholderPage title="Settings" />} />
-          <Route path="/profile" element={<PlaceholderPage title="Profile" />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </main>
 
