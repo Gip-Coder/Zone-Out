@@ -169,6 +169,17 @@ Study Buddy (think + chat) keeps working when the **frontend** Gemini quota is u
 
 With the backend running and at least one of these keys set, AI continues to work even when the browser’s Gemini key hits its limit. The server’s `server/.env` should include `OPENROUTER_API_KEY` and/or `GEMINI_API_KEY` for fallback.
 
+### Manual fallbacks (no API required)
+
+When an API key is missing or exhausted, these features still work:
+
+- **Course creation**: Add Course → "Manual (no AI)" tab (module names, one per line). Or paste/upload syllabus—if AI fails, structure is parsed from headings.
+- **File sorting**: If AI sort fails after dropping files, a modal lets you assign each file to a course and module.
+- **Quiz**: If AI fails, a short quiz is generated from the module's topic list.
+- **Video**: If AI fails, you get a YouTube search link using the module title and topics.
+- **Study plan (Goals)**: If AI fails, a plan is built by spreading course modules across days until the target date.
+- **Flashcards**: Flashcards page has "Manual (no API)" to generate a small deck from module topics.
+
 ---
 
 ## Design Philosophy
