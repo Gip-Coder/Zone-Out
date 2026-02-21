@@ -62,3 +62,56 @@ function parseThinkResponse(text) {
   const parsed = JSON.parse(jsonStr);
   return { text: parsed.text || "", action: parsed.action || null };
 }
+
+/** Manual fallback when API key exhausted: generate simple cards from topics. */
+function manualFlashcardsFallback(courseName, moduleTitle, topics = []) {
+  const list = Array.isArray(topics) && topics.length > 0 ? topics : ["Key concept 1", "Key concept 2", "Key concept 3"];
+  const cards = list.slice(0, 10).map((t, i) => ({
+    front: `What is ${t}? (${moduleTitle || "Module"})`,
+    back: `${t} is an important topic in ${courseName || "this course"}. Review your notes for details.`,
+  }));
+  return { cards };
+}
+
+/**
+ * Generate flashcards for a course/module. Uses AI when available; otherwise manual fallback.
+ */
+export const generateFlashcards = async (payload) => {
+  const { courseName, moduleTitle, topics = [] } = payload;
+  const topicList = Array.isArray(topics) ? topics : [];
+
+  if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) {
+    return manualFlashcardsFallback(courseName, moduleTitle, topicList);
+  }
+
+  const prompt = `You are a study assistant. Generate exactly 8–10 flashcards for this course module.
+Course: "${courseName || "General"}"
+Module: "${moduleTitle || "General"}"
+Topics: ${topicList.length ? JSON.stringify(topicList) : "General revision"}
+
+Return RAW JSON only, no markdown or explanation:
+{ "cards": [ { "front": "question or term", "back": "answer or definition" }, ... ] }`;
+
+  try {
+    let raw;
+    if (process.env.OPENROUTER_API_KEY) {
+      raw = await callOpenRouter(prompt);
+    } else {
+      raw = await callGemini(prompt);
+    }
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+    if (start === -1 || end === -1) throw new Error("No JSON");
+    const jsonStr = raw
+      .substring(start, end + 1)
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, " ")
+      .replace(/,\s*}/g, "}")
+      .replace(/,\s*]/g, "]");
+    const parsed = JSON.parse(jsonStr);
+    const cards = Array.isArray(parsed.cards) ? parsed.cards : [];
+    if (cards.length === 0) return manualFlashcardsFallback(courseName, moduleTitle, topicList);
+    return { cards: cards.map((c) => ({ front: c.front || "", back: c.back || "" })).filter((c) => c.front || c.back) };
+  } catch (e) {
+    return manualFlashcardsFallback(courseName, moduleTitle, topicList);
+  }
+}

@@ -1,7 +1,7 @@
 import React from 'react';
 import Timer from '../Components/Timer';
 
-export default function FocusTimerPage({ focusTime, setFocusTime, isFocusRunning, setIsFocusRunning }) {
+export default function FocusTimerPage({ focusTime, setFocusTime, isFocusRunning, setIsFocusRunning, onSessionComplete }) {
   return (
     <div style={pageStyle}>
       <h1 style={titleStyle}>Focus Timer</h1>
@@ -12,6 +12,7 @@ export default function FocusTimerPage({ focusTime, setFocusTime, isFocusRunning
           setFocusTime={setFocusTime}
           isRunning={isFocusRunning}
           setIsRunning={setIsFocusRunning}
+          onSessionComplete={onSessionComplete}
         />
       </div>
     </div>

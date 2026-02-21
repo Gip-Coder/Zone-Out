@@ -55,6 +55,18 @@ The application integrates course organization, task tracking, time management t
 - App navigation and timer control  
 - Study assistance and content generation  
 
+### Flashcards
+- Course and module selection (from Course Vault data)  
+- **AI generate**: backend creates flashcards from module topics (fallback to manual if API key exhausted)  
+- **Manual generate**: build a small deck without API  
+- Flip-card UI with next/prev  
+
+### Progress
+- Focus timer usage over time (by day)  
+- Subject/course breakdown (focus time per subject)  
+- Sessions completed count  
+- Data comes from completed focus sessions (logged when timer hits zero)  
+
 ---
 
 ## Tech Stack
@@ -185,9 +197,20 @@ When contributing:
 
 ---
 
+## Proxy users (testing)
+
+To test **Flashcards** and **Progress** with pre-seeded data, run:
+
+```bash
+npm run seed:proxy
+```
+
+Then log in with any of the credentials listed in **PROXY_USERS.md** (e.g. `alice@test.com` / `Test123!`).
+
+---
+
 ## Planned Enhancements
 
-- Advanced progress analytics  
 - Expanded AI study automation  
 - Collaborative study tools  
 - Improved performance optimization  

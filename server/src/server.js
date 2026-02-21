@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import connectDB  from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import progressRoutes from "./routes/progressRoutes.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import goalRoutes from "./routes/goalRoutes.js";
 
@@ -19,6 +20,7 @@ app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/progress", progressRoutes);
 
 app.use(errorHandler);
 app.use("/api/goals", goalRoutes);

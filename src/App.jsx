@@ -17,6 +17,8 @@ import FocusTimerPage from './pages/FocusTimerPage';
 import MusicPage from './pages/MusicPage';
 import AIPage from './pages/AIPage';
 import PlaceholderPage from './pages/PlaceholderPage';
+import FlashcardsPage from './pages/FlashcardsPage';
+import ProgressPage from './pages/ProgressPage';
 import ProfilePage from './pages/ProfilePage';
 
 export default function App() {
@@ -141,6 +143,19 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const handleSessionComplete = async (durationMinutes) => {
+    const token = localStorage.getItem("token");
+    const apiBase = import.meta.env.VITE_API_URL;
+    if (!token || !apiBase || !durationMinutes) return;
+    try {
+      await fetch(`${apiBase}/api/progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type: "focus", durationMinutes: Math.round(durationMinutes) }),
+      });
+    } catch (_) {}
+  };
+
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
 
@@ -197,11 +212,11 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/timeline" element={<TimelinePage goals={goals} setGoals={setGoals} />} />
           <Route path="/course-vault" element={<CourseVaultPage courses={courses} setCourses={setCourses} activeCourseId={activeCourseId} setActiveCourseId={setActiveCourseId} />} />
-          <Route path="/timer" element={<FocusTimerPage focusTime={focusTime} setFocusTime={setFocusTime} isFocusRunning={isFocusRunning} setIsFocusRunning={setIsFocusRunning} />} />
+          <Route path="/timer" element={<FocusTimerPage focusTime={focusTime} setFocusTime={setFocusTime} isFocusRunning={isFocusRunning} setIsFocusRunning={setIsFocusRunning} onSessionComplete={handleSessionComplete} />} />
           <Route path="/music" element={<MusicPage />} />
           <Route path="/ai" element={<AIPage />} />
-          <Route path="/flashcards" element={<PlaceholderPage title="Flashcards" />} />
-          <Route path="/progress" element={<PlaceholderPage title="Progress Tracker" />} />
+          <Route path="/flashcards" element={<FlashcardsPage />} />
+          <Route path="/progress" element={<ProgressPage />} />
           <Route path="/study-groups" element={<PlaceholderPage title="Study Groups" />} />
           <Route path="/resources" element={<PlaceholderPage title="Resources" />} />
           <Route path="/settings" element={<PlaceholderPage title="Settings" />} />

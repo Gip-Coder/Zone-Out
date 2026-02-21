@@ -1,4 +1,14 @@
-import { generateAIResponse, generateThinkResponse, generateChatResponse } from "../services/aiService.js";
+import { generateAIResponse, generateThinkResponse, generateChatResponse, generateFlashcards } from "../services/aiService.js";
+
+export const handleFlashcardsRequest = async (req, res) => {
+  try {
+    const { courseName, moduleTitle, topics } = req.body;
+    const result = await generateFlashcards({ courseName, moduleTitle, topics: topics || [] });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: "Flashcards generation failed" });
+  }
+};
 
 export const handleAIRequest = async (req, res) => {
   const { message, context, history } = req.body;

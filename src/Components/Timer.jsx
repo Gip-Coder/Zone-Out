@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
 
-export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning }) {
+export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning, onSessionComplete }) {
 
   const radius = 120;
   const circumference = 2 * Math.PI * radius;
@@ -37,6 +37,10 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
 
     if (focusTime === 0 && isRunning) {
       setIsRunning(false);
+      if (typeof onSessionComplete === "function") {
+        const minutes = Math.round((sessionDuration || 0) / 60);
+        if (minutes > 0) onSessionComplete(minutes);
+      }
     }
 
     return () => clearInterval(interval);
