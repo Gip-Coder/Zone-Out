@@ -7,14 +7,13 @@ import StudyGoals from './Components/StudyGoals';
 import NotesSection from './Components/NotesSection';
 import Auth from './Components/Auth';
 import Header from './Components/Header';
-import { Bot, Send, X } from 'lucide-react';
+import { Bot, Send, X, Music, Timer as TimerIcon } from 'lucide-react';
 import { motion } from "framer-motion";
 import { Brain, Chatbot } from './agent';
+import Widget from './Components/Widget';
 import Dashboard from './pages/Dashboard';
 import TimelinePage from './pages/TimelinePage';
 import CourseVaultPage from './pages/CourseVaultPage';
-import FocusTimerPage from './pages/FocusTimerPage';
-import MusicPage from './pages/MusicPage';
 import AIPage from './pages/AIPage';
 import PlaceholderPage from './pages/PlaceholderPage';
 import FlashcardsPage from './pages/FlashcardsPage';
@@ -65,7 +64,11 @@ export default function App() {
 
   const [focusTime, setFocusTime] = useState(25 * 60);
   const [isFocusRunning, setIsFocusRunning] = useState(false);
+  const [timerHasStarted, setTimerHasStarted] = useState(false);
 
+  const [isTimerWidgetOpen, setIsTimerWidgetOpen] = useState(false);
+  const [isMusicWidgetOpen, setIsMusicWidgetOpen] = useState(false);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   // =============================
   // AI DISPATCHER (Brain executes these)
   // =============================
@@ -214,8 +217,6 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/timeline" element={<TimelinePage goals={goals} setGoals={setGoals} />} />
           <Route path="/course-vault" element={<CourseVaultPage courses={courses} setCourses={setCourses} activeCourseId={activeCourseId} setActiveCourseId={setActiveCourseId} />} />
-          <Route path="/timer" element={<FocusTimerPage focusTime={focusTime} setFocusTime={setFocusTime} isFocusRunning={isFocusRunning} setIsFocusRunning={setIsFocusRunning} onSessionComplete={handleSessionComplete} />} />
-          <Route path="/music" element={<MusicPage />} />
           <Route path="/ai" element={<AIPage />} />
           <Route path="/flashcards" element={<FlashcardsPage />} />
           <Route path="/progress" element={<ProgressPage />} />
@@ -228,6 +229,63 @@ export default function App() {
 
       {/* Chatbot: general student queries (Q&A only) */}
       <Chatbot brain={brain} placeholder="Ask a study question..." />
+
+      {/* WIDGET TOGGLES (Bottom Left) */}
+      <div style={widgetToggleGroupStyle}>
+        <button onClick={() => setIsTimerWidgetOpen(!isTimerWidgetOpen)} style={widgetToggleBtnStyle(isTimerWidgetOpen)}>
+          <TimerIcon size={20} /> Timer
+        </button>
+        <button onClick={() => setIsMusicWidgetOpen(!isMusicWidgetOpen)} style={widgetToggleBtnStyle(isMusicWidgetOpen)}>
+          <Music size={20} /> Music
+        </button>
+      </div>
+
+      {isTimerWidgetOpen && (
+        <Widget
+          title="Focus Timer"
+          onClose={() => {
+            setIsTimerWidgetOpen(false);
+            setTimerHasStarted(false);
+            setIsFocusRunning(false);
+          }}
+          defaultPosition={{ x: 30, y: window.innerHeight - 450 }}
+          minWidth={200}
+          minHeight={200}
+          baseWidth={360}
+          baseHeight={360}
+          lockAspectRatio={true}
+          strictHeadless={isFocusRunning || timerHasStarted}
+        >
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Timer
+              focusTime={focusTime}
+              setFocusTime={setFocusTime}
+              isRunning={isFocusRunning}
+              setIsRunning={setIsFocusRunning}
+              onSessionComplete={handleSessionComplete}
+              onTimerStart={() => setTimerHasStarted(true)}
+            />
+          </div>
+        </Widget>
+      )}
+
+      {isMusicWidgetOpen && (
+        <Widget
+          title="Focus Music"
+          onClose={() => setIsMusicWidgetOpen(false)}
+          defaultPosition={{ x: 80, y: window.innerHeight - 480 }}
+          minWidth={280}
+          minHeight={280}
+          baseWidth={450}
+          baseHeight={450}
+          lockAspectRatio={true}
+          strictHeadless={isMusicPlaying}
+        >
+          <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+            <MusicPlayer setIsPlaying={setIsMusicPlaying} />
+          </div>
+        </Widget>
+      )}
 
       {/* Control: Study Buddy – commands (timer, navigate, goals) */}
       <button onClick={() => setShowChat(!showChat)} style={fabStyle}>
@@ -447,3 +505,27 @@ const sendBtn = {
   alignItems: 'center',
   justifyContent: 'center'
 };
+
+const widgetToggleGroupStyle = {
+  position: 'fixed',
+  bottom: '32px',
+  left: '32px',
+  display: 'flex',
+  gap: '12px',
+  zIndex: 4900
+};
+
+const widgetToggleBtnStyle = (isActive) => ({
+  background: isActive ? 'var(--button-gradient)' : 'var(--bg-secondary)',
+  border: isActive ? 'none' : '1px solid rgba(255,255,255,0.1)',
+  borderRadius: '24px',
+  padding: '10px 16px',
+  color: isActive ? 'white' : 'var(--text-primary)',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  cursor: 'pointer',
+  fontWeight: '600',
+  boxShadow: isActive ? '0 8px 20px rgba(124,58,237,0.4)' : '0 4px 12px rgba(0,0,0,0.2)',
+  transition: 'all 0.2s',
+});

@@ -24,9 +24,8 @@ const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/timeline', label: 'Timeline', icon: ListTodo },
   { path: '/course-vault', label: 'Course Vault', icon: Book },
-  { path: '/timer', label: 'Focus Timer', icon: Timer },
-  { path: '/music', label: 'Music', icon: Music },
   { path: '/ai', label: 'AI Assistant', icon: Bot },
+
 ];
 
 const placeholderItems = [

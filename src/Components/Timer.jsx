@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
 
-export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning, onSessionComplete }) {
+export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning, onSessionComplete, onTimerStart }) {
 
   const radius = 120;
   const circumference = 2 * Math.PI * radius;
@@ -14,6 +14,9 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
   const [minutesInput, setMinutesInput] = useState(
     Math.floor((focusTime % 3600) / 60)
   );
+
+  // Tracks if the timer has ever been started for this session to lock UI
+  const [hasStarted, setHasStarted] = useState(isRunning || focusTime !== 25 * 60);
 
   // ===============================
   // Sync Inputs when focusTime changes externally (AI etc)
@@ -46,7 +49,13 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
     return () => clearInterval(interval);
   }, [isRunning, focusTime]);
 
-  const toggleTimer = () => setIsRunning(prev => !prev);
+  const toggleTimer = () => {
+    setIsRunning(prev => !prev);
+    if (!hasStarted) {
+      setHasStarted(true);
+      if (onTimerStart) onTimerStart();
+    }
+  };
 
   // ===============================
   // MANUAL SET FIXED
@@ -63,6 +72,8 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
     setIsRunning(false);
     setFocusTime(totalSeconds);
     setSessionDuration(totalSeconds);
+    setHasStarted(true);
+    if (onTimerStart) onTimerStart();
   };
 
   const resetTimer = () => {
@@ -78,7 +89,7 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
     const m = Math.floor((sec % 3600) / 60);
     const s = sec % 60;
 
-    return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   };
 
   // ===============================
@@ -94,8 +105,16 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
   // UI
   // ===============================
   return (
-    <div style={{ display: "flex", justifyContent: "center", padding: "40px 0" }}>
-      <div style={{ position: "relative", width: 320, height: 320 }}>
+    <div style={{ display: "flex", justifyContent: "center" }}>
+      <div
+        style={{
+          position: "relative",
+          width: 320,
+          height: 320,
+          cursor: hasStarted ? 'pointer' : 'default'
+        }}
+        onClick={hasStarted ? toggleTimer : undefined}
+      >
 
         {/* Glow */}
         <div
@@ -173,48 +192,50 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
             {percentage}% remaining
           </div>
 
-          {/* Controls */}
-          <div style={{ display: "flex", gap: 15, marginTop: 12 }}>
-            <button
-              onClick={toggleTimer}
-              style={{
-                background: "var(--button-gradient)",
-                border: "none",
-                borderRadius: "50%",
-                width: 55,
-                height: 55,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                color: "white",
-                boxShadow: "0 0 20px var(--accent-primary)"
-              }}
-            >
-              {isRunning ? <Pause size={22} /> : <Play size={22} />}
-            </button>
+          {/* Controls - Only visible before starting */}
+          {!hasStarted && (
+            <div style={{ display: "flex", gap: 15, marginTop: 12 }}>
+              <button
+                onClick={toggleTimer}
+                style={{
+                  background: "var(--button-gradient)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 55,
+                  height: 55,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  color: "white",
+                  boxShadow: "0 0 20px var(--accent-primary)"
+                }}
+              >
+                {isRunning ? <Pause size={22} /> : <Play size={22} />}
+              </button>
 
-            <button
-              onClick={resetTimer}
-              style={{
-                background: "var(--bg-secondary)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "50%",
-                width: 55,
-                height: 55,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                color: "var(--text-primary)"
-              }}
-            >
-              <RotateCcw size={20} />
-            </button>
-          </div>
+              <button
+                onClick={resetTimer}
+                style={{
+                  background: "var(--bg-secondary)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "50%",
+                  width: 55,
+                  height: 55,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  color: "var(--text-primary)"
+                }}
+              >
+                <RotateCcw size={20} />
+              </button>
+            </div>
+          )}
 
           {/* Manual Set */}
-          {!isRunning && (
+          {!hasStarted && (
             <div style={{ display: "flex", gap: 8, marginTop: 18, alignItems: "center" }}>
               <input
                 type="number"
@@ -259,21 +280,27 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
 }
 
 const manualInputStyle = {
-  width: 65,
-  padding: 8,
-  borderRadius: 10,
+  width: 55,
+  padding: '8px',
+  borderRadius: '12px',
   border: "1px solid rgba(255,255,255,0.1)",
-  background: "var(--bg-secondary)",
+  background: "rgba(0,0,0,0.2)",
   color: "var(--text-primary)",
-  textAlign: "center"
+  textAlign: "center",
+  fontSize: '16px',
+  outline: 'none',
+  backdropFilter: 'blur(10px)',
+  transition: 'border 0.2s',
 };
 
 const setBtnStyle = {
-  padding: "8px 14px",
-  borderRadius: 10,
+  padding: "8px 16px",
+  borderRadius: '12px',
   border: "none",
   background: "var(--button-gradient)",
   color: "#fff",
   cursor: "pointer",
-  fontWeight: 600
+  fontWeight: '600',
+  boxShadow: '0 4px 15px rgba(124,58,237,0.3)',
+  transition: 'transform 0.1s',
 };
