@@ -3,6 +3,7 @@ import { ThemeContext } from "../context/ThemeContext";
 import { ToastContext } from "../context/ToastContext";
 import { motion } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
+import { auth, googleProvider } from "../services/firebaseDb";
 
 export default function Auth({ setIsAuthenticated }) {
   const { theme, toggleTheme } = useContext(ThemeContext);
@@ -96,6 +97,39 @@ export default function Auth({ setIsAuthenticated }) {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    if (!auth) {
+      toastError("Firebase Auth is not configured in .env");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await auth.signInWithPopup(googleProvider);
+      const idToken = await result.user.getIdToken();
+
+      const res = await fetch(`${API_URL}/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      const data = await res.json();
+      setLoading(false);
+
+      if (res.ok && data.token) {
+        localStorage.setItem("token", data.token);
+        if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+        toastSuccess("Google Sign-In successful!");
+        setIsAuthenticated(true);
+      } else {
+        toastError(data.message || data.error || "Google Sign-In failed on server");
+      }
+    } catch (error) {
+      setLoading(false);
+      console.error(error);
+      toastError(error.message || "Google Sign-In failed");
+    }
+  };
+
   return (
     <div style={{ ...styles.wrapper, flexDirection: isMobile ? "column" : "row" }}>
       <div style={styles.gradient}></div>
@@ -103,13 +137,13 @@ export default function Auth({ setIsAuthenticated }) {
 
       {!isMobile && (
         <>
-          <motion.div animate={{ y: [0, -30, 0] }} transition={{ duration: 6, repeat: Infinity }} style={styles.orb1}/>
-          <motion.div animate={{ y: [0, 20, 0] }} transition={{ duration: 8, repeat: Infinity }} style={styles.orb2}/>
+          <motion.div animate={{ y: [0, -30, 0] }} transition={{ duration: 6, repeat: Infinity }} style={styles.orb1} />
+          <motion.div animate={{ y: [0, 20, 0] }} transition={{ duration: 8, repeat: Infinity }} style={styles.orb2} />
         </>
       )}
 
       <button onClick={toggleTheme} style={styles.themeToggle}>
-        {theme === "dark" ? <Sun size={18}/> : <Moon size={18}/>}
+        {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
       </button>
 
       <div style={{ ...styles.content, flexDirection: isMobile ? "column" : "row", gap: isMobile ? "30px" : "60px" }}>
@@ -121,7 +155,7 @@ export default function Auth({ setIsAuthenticated }) {
           transition={{ duration: 0.8 }}
           style={{ ...styles.left, textAlign: isMobile ? "center" : "left" }}
         >
-          <img src="/logo.svg" alt="ZoneOut Logo" style={styles.logo}/>
+          <img src="/logo.svg" alt="ZoneOut Logo" style={styles.logo} />
           <h1 style={styles.title}>ZoneOut</h1>
           <p style={styles.subtitle}>AI-powered productivity for deep focus.</p>
         </motion.div>
@@ -170,6 +204,24 @@ export default function Auth({ setIsAuthenticated }) {
                 style={{ ...styles.button, opacity: loading ? 0.8 : 1 }}
               >
                 {loading ? "..." : mode === "login" ? "Sign in" : "Register"}
+              </motion.button>
+
+              <div style={styles.divider}>
+                <span style={styles.line}></span>
+                <span style={styles.orText}>or</span>
+                <span style={styles.line}></span>
+              </div>
+
+              <motion.button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                whileHover={!isMobile && !loading ? { scale: 1.04 } : {}}
+                whileTap={{ scale: 0.97 }}
+                style={{ ...styles.googleBtn, opacity: loading ? 0.8 : 1 }}
+              >
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{ width: '20px', height: '20px' }} />
+                {mode === "login" ? "Sign in" : "Register"} with Google
               </motion.button>
             </form>
             <p style={styles.toggle}>
@@ -333,6 +385,38 @@ const styles = {
     borderRadius: "50%",
     cursor: "pointer",
     zIndex: 3
+  },
+
+  googleBtn: {
+    padding: "12px",
+    borderRadius: "12px",
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "transparent",
+    color: "var(--text-primary)",
+    fontWeight: "600",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px"
+  },
+
+  divider: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    margin: "10px 0"
+  },
+
+  line: {
+    flex: 1,
+    height: "1px",
+    background: "rgba(255,255,255,0.1)"
+  },
+
+  orText: {
+    color: "var(--text-secondary)",
+    fontSize: "0.85rem"
   },
 
   toggle: {

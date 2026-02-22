@@ -20,6 +20,8 @@ import PlaceholderPage from './pages/PlaceholderPage';
 import FlashcardsPage from './pages/FlashcardsPage';
 import ProgressPage from './pages/ProgressPage';
 import ProfilePage from './pages/ProfilePage';
+import GroupDashboard from './features/study-groups/pages/GroupDashboard';
+
 
 export default function App() {
   const { info: toastInfo } = useContext(ToastContext);
@@ -109,7 +111,7 @@ export default function App() {
   // CENTRALIZED BRAIN (control + chat)
   // =============================
   const getAppStateRef = useRef(() => ({}));
-  const dispatchRef = useRef(() => {});
+  const dispatchRef = useRef(() => { });
   getAppStateRef.current = () => ({
     activeTab: location.pathname === '/timeline' ? 'goals' : location.pathname === '/course-vault' ? 'notes' : null,
     currentPath: location.pathname,
@@ -153,7 +155,7 @@ export default function App() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ type: "focus", durationMinutes: Math.round(durationMinutes) }),
       });
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const handleSendMessage = async () => {
@@ -217,7 +219,7 @@ export default function App() {
           <Route path="/ai" element={<AIPage />} />
           <Route path="/flashcards" element={<FlashcardsPage />} />
           <Route path="/progress" element={<ProgressPage />} />
-          <Route path="/study-groups" element={<PlaceholderPage title="Study Groups" />} />
+          <Route path="/study-groups" element={<GroupDashboard />} />
           <Route path="/resources" element={<PlaceholderPage title="Resources" />} />
           <Route path="/settings" element={<PlaceholderPage title="Settings" />} />
           <Route path="/profile" element={<ProfilePage />} />
