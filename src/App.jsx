@@ -275,11 +275,12 @@ export default function App() {
           onClose={() => setIsMusicWidgetOpen(false)}
           defaultPosition={{ x: 80, y: window.innerHeight - 480 }}
           minWidth={280}
-          minHeight={280}
+          minHeight={450}
           baseWidth={450}
-          baseHeight={450}
+          baseHeight={520}
           lockAspectRatio={true}
           strictHeadless={isMusicPlaying}
+          onBack={() => setIsMusicPlaying(false)}
         >
           <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
             <MusicPlayer setIsPlaying={setIsMusicPlaying} />

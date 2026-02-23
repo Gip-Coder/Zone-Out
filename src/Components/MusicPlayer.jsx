@@ -3,7 +3,7 @@ import { Music, Check, LogIn, AlertCircle } from 'lucide-react';
 import { ToastContext } from '../context/ToastContext';
 import { useMusicAuth } from '../hooks/useMusicAuth';
 
-export default function MusicPlayer({ setIsPlaying }) {
+export default function MusicPlayer({ isPlaying, setIsPlaying }) {
   const { error: toastError, success: toastSuccess } = useContext(ToastContext) || {};
   const { connections, tokens, loginSpotify, loginYouTube, loginAppleMusic } = useMusicAuth();
 
@@ -153,29 +153,34 @@ export default function MusicPlayer({ setIsPlaying }) {
     );
   }
 
-  // 3. DEFAULT VIEW (Focus Playlist + Sign in Prompt)
   return (
-    <div style={styles.wrapper} className="music-iframe-container">
-      <div style={styles.header}>
-        <div style={styles.title}>
-          <Music size={18} color="var(--accent-primary)" />
-          <span>Focus Music</span>
+    <div style={{ ...styles.wrapper, padding: isPlaying ? 0 : '22px' }} className="music-iframe-container">
+      {!isPlaying && (
+        <div style={styles.header}>
+          <div style={styles.title}>
+            <Music size={18} color="var(--accent-primary)" />
+            <span>Focus Music</span>
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={styles.connectedState}>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-          Default Focus Playlist
-        </p>
-        <iframe src={embedUrl} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style={{ ...styles.iframe, marginBottom: '16px' }} />
+        {!isPlaying && (
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+            Default Focus Playlist
+          </p>
+        )}
+        <iframe src={embedUrl} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style={{ ...styles.iframe, flex: 1, height: '100%', marginBottom: isPlaying ? 0 : '16px' }} />
       </div>
 
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center' }}>Want to listen to your own music?</p>
-        <button onClick={() => setShowSignIn(true)} style={{ ...styles.connectBtn, background: 'var(--bg-primary)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)' }}>
-          Sign in to Provider
-        </button>
-      </div>
+      {!isPlaying && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center' }}>Want to listen to your own music?</p>
+          <button onClick={() => setShowSignIn(true)} style={{ ...styles.connectBtn, background: 'var(--bg-primary)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)' }}>
+            Sign in to Provider
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -371,7 +376,8 @@ const styles = {
   },
   iframe: {
     width: '100%',
-    height: '352px',
+    height: '100%',
+    minHeight: '352px',
     borderRadius: '12px',
     border: 'none',
     boxShadow: '0 8px 30px rgba(0,0,0,0.3)'

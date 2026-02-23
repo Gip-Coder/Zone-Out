@@ -15,8 +15,7 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
     Math.floor((focusTime % 3600) / 60)
   );
 
-  // Tracks if the timer has ever been started for this session to lock UI
-  const [hasStarted, setHasStarted] = useState(isRunning || focusTime !== 25 * 60);
+  const [isEditing, setIsEditing] = useState(false);
 
   // ===============================
   // Sync Inputs when focusTime changes externally (AI etc)
@@ -49,10 +48,17 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
     return () => clearInterval(interval);
   }, [isRunning, focusTime]);
 
-  const toggleTimer = () => {
-    setIsRunning(prev => !prev);
-    if (!hasStarted) {
-      setHasStarted(true);
+  const handleRingClick = () => {
+    if (!isRunning && !isEditing) {
+      // Open edit mode if stopped
+      setIsEditing(true);
+    } else if (isRunning) {
+      // Pause if running
+      setIsRunning(false);
+    } else if (!isRunning && isEditing && focusTime > 0) {
+      // Starts timer from edit mode if time is gt 0 (fallback if clicking ring instead of Set)
+      setIsEditing(false);
+      setIsRunning(true);
       if (onTimerStart) onTimerStart();
     }
   };
@@ -72,7 +78,8 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
     setIsRunning(false);
     setFocusTime(totalSeconds);
     setSessionDuration(totalSeconds);
-    setHasStarted(true);
+    setIsEditing(false);
+    setIsRunning(true);
     if (onTimerStart) onTimerStart();
   };
 
@@ -111,9 +118,9 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
           position: "relative",
           width: 320,
           height: 320,
-          cursor: hasStarted ? 'pointer' : 'default'
+          cursor: "pointer"
         }}
-        onClick={hasStarted ? toggleTimer : undefined}
+        onClick={handleRingClick}
       >
 
         {/* Glow */}
@@ -192,28 +199,9 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
             {percentage}% remaining
           </div>
 
-          {/* Controls - Only visible before starting */}
-          {!hasStarted && (
+          {/* Controls - Only visible during Edit Mode */}
+          {isEditing && (
             <div style={{ display: "flex", gap: 15, marginTop: 12 }}>
-              <button
-                onClick={toggleTimer}
-                style={{
-                  background: "var(--button-gradient)",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: 55,
-                  height: 55,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  color: "white",
-                  boxShadow: "0 0 20px var(--accent-primary)"
-                }}
-              >
-                {isRunning ? <Pause size={22} /> : <Play size={22} />}
-              </button>
-
               <button
                 onClick={resetTimer}
                 style={{
@@ -235,8 +223,8 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
           )}
 
           {/* Manual Set */}
-          {!hasStarted && (
-            <div style={{ display: "flex", gap: 8, marginTop: 18, alignItems: "center" }}>
+          {isEditing && (
+            <div style={{ display: "flex", gap: 8, marginTop: 18, alignItems: "center" }} onClick={e => e.stopPropagation()}>
               <input
                 type="number"
                 min="0"

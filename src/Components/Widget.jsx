@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Rnd } from 'react-rnd';
-import { X, GripHorizontal } from 'lucide-react';
+import { X, GripHorizontal, ArrowLeft } from 'lucide-react';
 
 export default function Widget({
     title,
@@ -9,12 +9,12 @@ export default function Widget({
     defaultPosition,
     minWidth = 300,
     minHeight = 200,
-    baseWidth,
     baseHeight,
     lockAspectRatio = false,
     hideHeader = false,
     isTransparent = false,
-    strictHeadless = false
+    strictHeadless = false,
+    onBack
 }) {
     const [isHovered, setIsHovered] = useState(false);
 
@@ -116,6 +116,15 @@ export default function Widget({
                 {/* Headless Hover Controls */}
                 {(actualHideHeader || actualIsTransparent) && (
                     <div className="widget-drag-handle" style={headlessControlsStyle(isHovered)}>
+                        {onBack && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onBack(); }}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                style={headlessCloseBtn}
+                            >
+                                <ArrowLeft size={16} />
+                            </button>
+                        )}
                         <GripHorizontal size={16} style={{ color: 'rgba(255,255,255,0.4)', cursor: 'grab' }} />
                         <button
                             onClick={(e) => { e.stopPropagation(); onClose(); }}
@@ -145,7 +154,8 @@ export default function Widget({
                         width: baseWidth ? `${baseWidth}px` : '100%',
                         height: baseHeight ? `${baseHeight}px` : (baseWidth ? `calc(100% / ${(typeof state.width === 'string' ? parseFloat(state.width) : state.width) / baseWidth})` : '100%'),
                         transform: baseWidth ? `scale(${(typeof state.width === 'string' ? parseFloat(state.width) : state.width) / baseWidth})` : 'none',
-                        transformOrigin: 'top left'
+                        transformOrigin: 'top left',
+                        transition: 'none' // Prevent CSS lag during resizing
                     }}>
                         {children}
                     </div>

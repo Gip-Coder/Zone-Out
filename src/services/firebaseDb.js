@@ -1,7 +1,7 @@
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
 import 'firebase/compat/auth';
-
+import 'firebase/compat/database';
 // Validate that environment variables exist before initializing
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -22,6 +22,8 @@ if (isConfigured && !firebase.apps.length) {
 }
 
 export const db = isConfigured ? firebase.firestore() : null;
+export const rtdb = isConfigured ? firebase.database() : null;
 export const auth = isConfigured ? firebase.auth() : null;
 export const googleProvider = isConfigured ? new firebase.auth.GoogleAuthProvider() : null;
 export const serverTimestamp = isConfigured ? firebase.firestore.FieldValue.serverTimestamp : () => new Date();
+export default firebase;
