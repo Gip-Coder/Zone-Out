@@ -3,8 +3,8 @@
  * Handles base URLs, Auth headers (Bearer tokens), and JSON serialization.
  */
 
-const API_BASE = import.meta.env.DEV ? "http://localhost:5000/api" : `${import.meta.env.VITE_API_BASE_URL}/api`;
-
+const API_BASE = import.meta.env.DEV ? "http://localhost:5000/api" : (import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : "https://zone-out.onrender.com/api");
+console.log("API_BASE:", API_BASE);
 function getAuthHeaders() {
     const token = localStorage.getItem("token");
     return token ? { Authorization: `Bearer ${token}` } : {};
