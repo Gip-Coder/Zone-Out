@@ -20,7 +20,7 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://zone-out-jade.vercel.app"
+    "https://zone-out-jade.vercel.app",
   ],
   credentials: true
 }));
@@ -39,10 +39,7 @@ app.use(errorHandler);
 // Export app for Vercel Serverless
 export default app;
 
-// Only start the server locally if not in a serverless environment
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
