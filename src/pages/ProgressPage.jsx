@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { TrendingUp, Clock, BookOpen, Loader } from "lucide-react";
-
-function getAuthHeaders() {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
+import { api } from "../services/apiClient";
 
 function getDaysAgo(n) {
   const d = new Date();
@@ -23,17 +19,13 @@ export default function ProgressPage() {
     const to = getDaysAgo(0);
     setLoading(true);
     setError(null);
-    const base = import.meta.env.DEV ? "http://localhost:5000" : (import.meta.env.VITE_API_URL || "");
-    fetch(`${base}/api/progress?from=${from}&to=${to}`, { headers: getAuthHeaders() })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load progress");
-        return res.json();
-      })
+
+    api.get(`/progress?from=${from}&to=${to}`)
       .then((data) => {
         setEntries(Array.isArray(data) ? data : []);
       })
       .catch((e) => {
-        setError(e.message);
+        setError(e.message || "Failed to load progress");
         setEntries([]);
       })
       .finally(() => setLoading(false));

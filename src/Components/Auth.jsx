@@ -4,6 +4,7 @@ import { ToastContext } from "../context/ToastContext";
 import { motion } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 import { auth, googleProvider } from "../services/firebaseDb";
+import { api } from "../services/apiClient";
 
 export default function Auth({ setIsAuthenticated }) {
   const { theme, toggleTheme } = useContext(ThemeContext);
@@ -72,30 +73,30 @@ export default function Auth({ setIsAuthenticated }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const endpoint = mode === "login" ? "login" : "register";
+    const endpoint = mode === "login" ? "/auth/login" : "/auth/register";
     const body = mode === "login"
       ? { email: form.email, password: form.password }
       : { name: form.name, email: form.email, password: form.password };
+
     if (mode === "register" && !form.name?.trim()) {
       toastError("Name is required");
       setLoading(false);
       return;
     }
-    const res = await fetch(`${API_URL}/${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    setLoading(false);
-    if (res.ok && data.token) {
-      localStorage.setItem("token", data.token);
-      if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
-      if (mode === "login") toastSuccess("Welcome back!");
-      else toastSuccess("Account created successfully.");
-      setIsAuthenticated(true);
-    } else {
-      toastError(data.message || data.error || "Something went wrong");
+
+    try {
+      const data = await api.post(endpoint, body);
+      setLoading(false);
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+        if (mode === "login") toastSuccess("Welcome back!");
+        else toastSuccess("Account created successfully.");
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      setLoading(false);
+      toastError(error.message || "Something went wrong");
     }
   };
 
@@ -109,21 +110,14 @@ export default function Auth({ setIsAuthenticated }) {
       const result = await auth.signInWithPopup(googleProvider);
       const idToken = await result.user.getIdToken();
 
-      const res = await fetch(`${API_URL}/google`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
-      const data = await res.json();
+      const data = await api.post("/auth/google", { idToken });
       setLoading(false);
 
-      if (res.ok && data.token) {
+      if (data.token) {
         localStorage.setItem("token", data.token);
         if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
         toastSuccess("Google Sign-In successful!");
         setIsAuthenticated(true);
-      } else {
-        toastError(data.message || data.error || "Google Sign-In failed on server");
       }
     } catch (error) {
       setLoading(false);

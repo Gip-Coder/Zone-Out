@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { api } from "../services/apiClient";
 
 const MODEL_CONTROL = "gemini-3-flash";
 const MODEL_CHAT = "gemini-3-flash";
@@ -7,14 +8,6 @@ const MODEL_QUEUE = [
   "gemini-2.5-flash-lite",
   "gemini-3-flash",
 ];
-
-const API_BASE = import.meta.env.DEV ? "http://localhost:5000" : (import.meta.env.VITE_API_URL || "");
-
-/** Auth header for backend fallback when Gemini quota is exceeded or unavailable. */
-function getAuthHeaders() {
-  const token = typeof localStorage !== "undefined" ? localStorage.getItem("token") : null;
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
 
 /**
  * Centralized AI Brain: control + access over the entire app, and raw generation for features (quiz, video, syllabus, etc.).
@@ -74,19 +67,13 @@ Respond STRICTLY in RAW JSON only:
       // Fall through to backend (quota, no key, network, etc.)
     }
 
-    if (!API_BASE) throw new Error("AI unavailable. Set VITE_GEMINI_API_KEY or run the backend with VITE_API_URL.");
-    const res = await fetch(`${API_BASE}/api/ai/think`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-      body: JSON.stringify({ userInput, context }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.message || "AI think failed");
+    try {
+      const data = await api.post("/ai/think", { userInput, context });
+      if (data.action) await this.dispatch(data.action);
+      return data.text || "";
+    } catch (apiError) {
+      throw new Error(apiError.message || "AI think failed");
     }
-    const { text: replyText, action } = await res.json();
-    if (action) await this.dispatch(action);
-    return replyText || "";
   }
 
   _buildControlContext(state) {
@@ -135,18 +122,12 @@ Respond STRICTLY in RAW JSON only:
       // Fall through to backend
     }
 
-    if (!API_BASE) throw new Error("AI unavailable. Set VITE_GEMINI_API_KEY or run the backend with VITE_API_URL.");
-    const res = await fetch(`${API_BASE}/api/ai/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-      body: JSON.stringify({ message: userMessage, history }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.message || "AI chat failed");
+    try {
+      const data = await api.post("/ai/chat", { message: userMessage, history });
+      return data.response ?? "";
+    } catch (apiError) {
+      throw new Error(apiError.message || "AI chat failed");
     }
-    const data = await res.json();
-    return data.response ?? "";
   }
 
   /**

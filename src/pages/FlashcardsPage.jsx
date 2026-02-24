@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Layers, Loader, ChevronRight, ChevronLeft, RotateCcw, Sparkles, FileText } from "lucide-react";
 import { getAllCourses } from "../utils/studyVaultDb";
-
-const API_BASE = import.meta.env.DEV ? "http://localhost:5000" : (import.meta.env.VITE_API_URL || "");
-
-function getAuthHeaders() {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
+import { api } from "../services/apiClient";
 
 /** Manual fallback when API is unavailable. */
 function manualFlashcards(courseName, moduleTitle, topics = []) {
@@ -70,24 +64,22 @@ export default function FlashcardsPage() {
     const moduleTitle = selectedModule.title;
     const topics = selectedModule.topics || [];
 
-    if (useAI && API_BASE) {
+    if (useAI) {
       try {
-        const res = await fetch(`${API_BASE}/api/ai/flashcards`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          body: JSON.stringify({ courseName, moduleTitle, topics }),
-        });
-        const data = await res.json();
-        if (res.ok && Array.isArray(data.cards) && data.cards.length > 0) {
+        const data = await api.post("/ai/flashcards", { courseName, moduleTitle, topics });
+
+        if (Array.isArray(data?.cards) && data.cards.length > 0) {
           setCards(data.cards);
+          setGenerating(false);
           return;
         }
       } catch (e) {
-        setError("AI unavailable, using manual cards.");
+        setError(e.message || "AI unavailable, using manual cards.");
       }
     }
 
     setCards(manualFlashcards(courseName, moduleTitle, topics));
+    setGenerating(false);
   };
 
   const resetDeck = () => {

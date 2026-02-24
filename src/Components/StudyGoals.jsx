@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, CheckCircle, Circle } from 'lucide-react';
+import { api } from '../services/apiClient';
 
 export default function StudyGoals() {
   const [goals, setGoals] = useState([]);
   const [newGoal, setNewGoal] = useState("");
-
-  const API_BASE = import.meta.env.DEV ? "http://localhost:5000" : (import.meta.env.VITE_API_URL || "");
-  const API_URL = `${API_BASE}/api/goals`;
 
   // ===============================
   // LOAD GOALS FROM BACKEND
@@ -14,26 +12,12 @@ export default function StudyGoals() {
   useEffect(() => {
     const fetchGoals = async () => {
       try {
-        const res = await fetch(API_URL, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-          }
-        });
-
-        if (res.status === 401) {
-          console.log("Unauthorized. Token missing or invalid.");
-          return;
-        }
-
-        const data = await res.json();
-
+        const data = await api.get("/goals");
         if (Array.isArray(data)) {
           setGoals(data);
         } else {
           setGoals([]);
         }
-
       } catch (err) {
         console.error("Error fetching goals:", err);
         setGoals([]);
@@ -41,7 +25,7 @@ export default function StudyGoals() {
     };
 
     fetchGoals();
-  }, [API_URL]);
+  }, []);
 
 
   // ===============================
@@ -51,20 +35,11 @@ export default function StudyGoals() {
     if (!newGoal.trim()) return;
 
     try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify({
-          text: newGoal,
-          targetDate: "",
-          plan: []
-        }),
+      const data = await api.post("/goals", {
+        text: newGoal,
+        targetDate: "",
+        plan: []
       });
-
-      const data = await res.json();
 
       // safer state update
       setGoals(prev => [data, ...prev]);
@@ -79,18 +54,9 @@ export default function StudyGoals() {
   // ===============================
   const toggleMainGoal = async (goal) => {
     try {
-      const res = await fetch(`${API_URL}/${goal._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify({
-          completed: !goal.completed
-        }),
+      const updated = await api.put(`/goals/${goal._id}`, {
+        completed: !goal.completed
       });
-
-      const updated = await res.json();
 
       setGoals(prev =>
         prev.map(g => g._id === goal._id ? updated : g)
@@ -105,13 +71,7 @@ export default function StudyGoals() {
   // ===============================
   const deleteGoal = async (id) => {
     try {
-      await fetch(`${API_URL}/${id}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`
-        }
-      });
+      await api.delete(`/goals/${id}`);
 
       setGoals(prev =>
         prev.filter(goal => goal._id !== id)
@@ -126,15 +86,9 @@ export default function StudyGoals() {
   // ===============================
   const updateGoalDate = async (goal, newDate) => {
     try {
-      const res = await fetch(`${API_URL}/${goal._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetDate: newDate
-        }),
+      const updated = await api.put(`/goals/${goal._id}`, {
+        targetDate: newDate
       });
-
-      const updated = await res.json();
 
       setGoals(prev =>
         prev.map(g => g._id === goal._id ? updated : g)
