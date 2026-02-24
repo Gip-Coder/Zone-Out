@@ -35,47 +35,39 @@ export const ProgressCard = memo(({ update, currentUser }) => {
     }, [isLiked, update.id, toggleLike]);
 
     return (
-        <div className="group relative bg-[#14151a]/80 backdrop-blur-sm border border-gray-800/60 rounded-3xl p-7 mb-6 overflow-hidden shadow-xl shadow-black/20 transition-all duration-300 hover:border-purple-500/30 hover:bg-[#1a1b23]/90 hover:-translate-y-1">
+        <div className="glass-card p-6 mb-6 glass-card-hover overflow-hidden relative group">
             {/* Subtle top glow based on hover */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--neon-purple)] to-[var(--neon-pink)] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
             <div className="flex items-start justify-between mb-5">
-                <div className="flex items-center gap-4">
-                    <div className="relative">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-purple-500/30">
-                            {update.authorName?.[0] || 'U'}
-                        </div>
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-[#14151a] shadow-sm"></div>
+                <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[var(--neon-purple)] to-[var(--neon-blue)] flex items-center justify-center font-bold text-white border-2 border-[var(--neon-purple)]/30 shadow-lg">
+                        {update.authorName?.[0] || 'U'}
                     </div>
                     <div>
-                        <div className="font-bold text-gray-100 text-[15px] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-purple-400 group-hover:to-indigo-400 transition-colors">{update.authorName || 'Anonymous Student'}</div>
-                        <div className="flex items-center gap-2 text-xs font-medium text-gray-500 mt-1">
-                            <span className="flex items-center gap-1">
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                {update.createdAt?.toDate ? new Date(update.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                            </span>
-                            <span className="w-1 h-1 rounded-full bg-gray-700"></span>
+                        <h4 className="font-semibold text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[var(--neon-purple)] group-hover:to-[var(--neon-pink)] transition-colors">{update.authorName || 'Anonymous Student'}</h4>
+                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500 mt-0.5">
+                            <span>{update.createdAt?.toDate ? new Date(update.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}</span>
+                            <span className="w-1 h-1 rounded-full bg-white/20"></span>
                             <span>{update.createdAt?.toDate ? new Date(update.createdAt.toDate()).toLocaleDateString() : 'Today'}</span>
                         </div>
                     </div>
                 </div>
                 {update.courseTag && (
-                    <span className="px-4 py-1.5 bg-[#1c1e26] text-purple-400 hover:text-purple-300 text-[11px] rounded-xl font-bold border border-purple-500/20 shadow-sm transition-colors cursor-pointer uppercase tracking-widest">
+                    <span className="px-3 py-1 bg-[var(--neon-purple)]/10 text-[var(--neon-purple)] text-[11px] rounded-full font-bold border border-[var(--neon-purple)]/20 shadow-sm uppercase tracking-widest">
                         {update.courseTag}
                     </span>
                 )}
             </div>
 
-            <p className="text-gray-300 text-[15px] mb-6 leading-relaxed whitespace-pre-wrap">
+            <p className="text-slate-300 text-[15px] mb-6 leading-relaxed whitespace-pre-wrap">
                 {update.content}
             </p>
 
             {update.mediaUrl && (
                 <div className="mb-6 relative group/img">
                     <div
-                        className="rounded-2xl overflow-hidden cursor-zoom-in border border-gray-800 focus-within:ring-2 focus-within:ring-purple-500 focus-within:ring-offset-2 focus-within:ring-offset-[#14151a] shadow-lg transition-all"
+                        className="rounded-2xl overflow-hidden cursor-zoom-in border border-white/10 focus-within:ring-2 focus-within:ring-[var(--neon-purple)] focus-within:ring-offset-2 focus-within:ring-offset-[#14151a] shadow-lg transition-all"
                         onClick={() => setIsImageOpen(true)}
                         tabIndex={0}
                         onKeyDown={(e) => e.key === 'Enter' && setIsImageOpen(true)}
@@ -95,7 +87,7 @@ export const ProgressCard = memo(({ update, currentUser }) => {
                     </div>
 
                     {isImageOpen && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0E1015]/95 backdrop-blur-lg p-4 cursor-zoom-out animate-fade-in" onClick={() => setIsImageOpen(false)}>
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-lg p-4 cursor-zoom-out animate-fade-in" onClick={() => setIsImageOpen(false)}>
                             <img
                                 src={update.mediaUrl}
                                 alt="Expanded"
@@ -115,43 +107,40 @@ export const ProgressCard = memo(({ update, currentUser }) => {
                 </div>
             )}
 
-            <div className="flex items-center justify-between border-t border-gray-800/80 pt-5 mt-2">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-between pt-4 border-t border-white/5 gap-y-4 mt-2">
+                <div className="flex gap-6">
                     <button
                         onClick={handleLike}
-                        className={`group/btn flex items-center gap-2 transition-all font-semibold text-sm px-4 py-2 rounded-xl border ${isLiked
-                                ? 'text-pink-400 bg-pink-500/10 border-pink-500/20 shadow-inner shadow-pink-500/10'
-                                : 'text-gray-400 hover:text-gray-200 bg-gray-800/40 hover:bg-gray-800 border-gray-800/60'
-                            }`}
+                        className={`group/btn flex items-center gap-2 transition-colors text-sm font-medium ${isLiked ? 'text-[var(--neon-pink)]' : 'text-slate-400 hover:text-[var(--neon-pink)]'
+                            } ${animatingLike ? 'scale-125' : 'scale-100'}`}
                     >
                         <svg
-                            className={`w-5 h-5 transition-transform duration-300 ${isLiked ? 'fill-current' : 'group-hover/btn:scale-110 group-hover/btn:-rotate-12'} ${animatingLike ? 'scale-125' : ''}`}
-                            fill="none"
+                            className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${isLiked ? 'fill-current' : 'group-hover/btn:scale-110 group-hover/btn:-rotate-12'}`}
+                            fill={isLiked ? "currentColor" : "none"}
                             viewBox="0 0 24 24"
                             stroke="currentColor"
                         >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isLiked ? 1.5 : 2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                         </svg>
-                        {likesCount > 0 ? (
-                            <span>
-                                {likesCount} <span className="hidden sm:inline font-medium opacity-80 pl-1">{likesCount === 1 ? 'Like' : 'Likes'}</span>
-                            </span>
-                        ) : 'Like'}
+                        <span>
+                            {likesCount} <span className="hidden sm:inline opacity-80 pl-0.5">{likesCount === 1 ? 'Like' : 'Likes'}</span>
+                        </span>
                     </button>
 
-                    <button className="flex items-center gap-2 text-gray-400 hover:text-gray-200 bg-gray-800/40 hover:bg-gray-800 border border-gray-800/60 transition-all font-semibold text-sm px-4 py-2 rounded-xl">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                    <button className="flex items-center gap-2 text-slate-400 hover:text-[var(--neon-blue)] transition-colors text-sm font-medium">
+                        <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
                         Comment
                     </button>
-                </div>
 
-                <button className="p-2 text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded-xl transition-colors">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
-                    </svg>
-                </button>
+                    <button className="flex items-center gap-2 text-slate-400 hover:text-[var(--neon-purple)] transition-colors text-sm font-medium">
+                        <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                        <span className="hidden sm:block">Share</span>
+                    </button>
+                </div>
             </div>
         </div>
     );

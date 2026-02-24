@@ -26,8 +26,8 @@ const MessageGroup = React.memo(({ messages, isMe, author }) => {
                     <div
                         key={msg.id}
                         className={`group relative max-w-[75%] px-4 py-2.5 mb-1 text-[15px] leading-relaxed shadow-sm transition-all duration-200 ${isMe
-                                ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white hover:shadow-indigo-500/20'
-                                : 'bg-[#1c1e26] text-gray-100 hover:bg-[#23252f] border border-gray-800/60 shadow-black/20'
+                            ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white hover:shadow-indigo-500/20'
+                            : 'bg-[#1c1e26] text-gray-100 hover:bg-[#23252f] border border-gray-800/60 shadow-black/20'
                             }`}
                         style={{
                             borderRadius: '16px',
@@ -103,40 +103,39 @@ export const ChatContainer = ({ currentUser }) => {
         .map(([id]) => id);
 
     return (
-        <div className="flex flex-col h-full bg-[#0E1015] relative overflow-hidden">
-            {/* Ambient Background Glow */}
+        <div className="flex flex-col h-full bg-transparent relative overflow-hidden p-6">
+            {/* Ambient Background Glow (Optional, keeping it for extra depth) */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-[120px] pointer-events-none -z-10" />
             <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/5 rounded-full blur-[120px] pointer-events-none -z-10" />
 
-            {/* Chat header (optional, if we want one inside the container) */}
-            <div className="h-14 border-b border-gray-800/60 bg-[#14151a]/80 backdrop-blur-md flex items-center px-6 z-10 shadow-sm">
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold">#</div>
-                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-[#14151a] rounded-full"></div>
+            {/* Chat header */}
+            <div className="glass-card mb-6 h-16 flex items-center px-6 z-10 shrink-0">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[var(--neon-blue)] to-[var(--neon-purple)] flex items-center justify-center font-bold text-white shadow-lg neon-glow-purple">
+                        #
                     </div>
                     <div>
-                        <h2 className="font-semibold text-gray-100 text-sm">Live Discussion</h2>
-                        <p className="text-[10px] text-gray-500">{group?.members?.length || 42} members</p>
+                        <h2 className="font-semibold text-white text-lg leading-tight">Live Discussion</h2>
+                        <p className="text-xs text-slate-400 font-medium tracking-wide">{group?.members?.length || 42} <span className="text-slate-500">members online</span></p>
                     </div>
                 </div>
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto px-4 py-6 scroll-smooth z-10 custom-scrollbar" ref={scrollRef}>
+            <div className="flex-1 overflow-y-auto px-2 py-4 scroll-smooth z-10 custom-scrollbar glass-card mb-6 flex flex-col" ref={scrollRef}>
                 {messages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-500 animate-fade-in-up">
-                        <div className="w-20 h-20 bg-gray-800/50 rounded-full flex items-center justify-center mb-4 border border-gray-700/50 shadow-inner">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-10 h-10 text-indigo-500/50">
+                    <div className="flex flex-col items-center justify-center h-full text-slate-400 animate-fade-in-up flex-1">
+                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4 border border-white/10 shadow-inner">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-10 h-10 text-[var(--neon-purple)] opacity-50">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
                             </svg>
                         </div>
-                        <h3 className="text-gray-200 font-medium text-lg mb-1">Start the Conversation</h3>
+                        <h3 className="text-white font-medium text-lg mb-1">Start the Conversation</h3>
                         <p className="text-sm">Be the first to say hello to the group!</p>
                     </div>
                 )}
 
-                <div className="max-w-4xl mx-auto w-full">
+                <div className="w-full flex-1">
                     {groupedMessages.map((groupData, i) => (
                         <MessageGroup
                             key={i}
