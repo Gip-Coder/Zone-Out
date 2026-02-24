@@ -6,8 +6,12 @@ const router = express.Router();
 
 // GET all goals
 router.get("/", protect, async (req, res) => {
-  const goals = await Goal.find({ user: req.user });
-  res.json(goals);
+  try {
+    const goals = await Goal.find({ user: req.user });
+    res.json(goals);
+  } catch (error) {
+    res.status(500).json({ error: error.message || "Failed to fetch goals" });
+  }
 });
 
 
