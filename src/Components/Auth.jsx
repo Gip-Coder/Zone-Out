@@ -15,13 +15,9 @@ export default function Auth({ setIsAuthenticated }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [loading, setLoading] = useState(false);
 
-  // Explicitly force string to evaluate properly - forcing HMR refresh!
-  let API_BASE = import.meta.env.VITE_API_URL;
-  if (!API_BASE || API_BASE === "undefined" || API_BASE === "null") {
-    API_BASE = "http://localhost:5000";
-  }
+  // Use relative path in production, and localhost in dev
+  const API_BASE = import.meta.env.DEV ? "http://localhost:5000" : (import.meta.env.VITE_API_URL || "");
   const API_URL = `${API_BASE}/api/auth`;
-  console.log("Forced API_URL reload:", API_URL);
 
   // Detect screen resize
   useEffect(() => {

@@ -150,7 +150,7 @@ export default function App() {
 
   const handleSessionComplete = async (durationMinutes) => {
     const token = localStorage.getItem("token");
-    const apiBase = import.meta.env.VITE_API_URL;
+    const apiBase = import.meta.env.DEV ? "http://localhost:5000" : (import.meta.env.VITE_API_URL || "");
     if (!token || !apiBase || !durationMinutes) return;
     try {
       await fetch(`${apiBase}/api/progress`, {

@@ -8,7 +8,7 @@ const MODEL_QUEUE = [
   "gemini-3-flash",
 ];
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.DEV ? "http://localhost:5000" : (import.meta.env.VITE_API_URL || "");
 
 /** Auth header for backend fallback when Gemini quota is exceeded or unavailable. */
 function getAuthHeaders() {
@@ -32,9 +32,9 @@ export class Brain {
     this.controlModel = this.genAI?.getGenerativeModel({ model: MODEL_CONTROL }) ?? null;
     this.chatModel = this.genAI
       ? this.genAI.getGenerativeModel({
-          model: MODEL_CHAT,
-          systemInstruction: `You are ZoneOut Study Buddy — a friendly study expert for students. Answer doubts clearly with bullet points and short explanations. Keep replies helpful and under 4–5 sentences. You do NOT control the app; you only help with study questions and concepts.`,
-        })
+        model: MODEL_CHAT,
+        systemInstruction: `You are ZoneOut Study Buddy — a friendly study expert for students. Answer doubts clearly with bullet points and short explanations. Keep replies helpful and under 4–5 sentences. You do NOT control the app; you only help with study questions and concepts.`,
+      })
       : null;
   }
 
@@ -96,11 +96,11 @@ Respond STRICTLY in RAW JSON only:
       view: state.view,
       activeCourse: state.activeCourse
         ? {
-            name: state.activeCourse.name,
-            id: state.activeCourse.id,
-            modules: state.activeCourse.modules?.map((m) => m.title),
-            syllabus: state.activeCourse.syllabus?.substring?.(0, 500),
-          }
+          name: state.activeCourse.name,
+          id: state.activeCourse.id,
+          modules: state.activeCourse.modules?.map((m) => m.title),
+          syllabus: state.activeCourse.syllabus?.substring?.(0, 500),
+        }
         : null,
       activeCourseId: state.activeCourseId,
       timer: {

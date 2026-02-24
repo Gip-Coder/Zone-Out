@@ -23,7 +23,7 @@ export default function ProgressPage() {
     const to = getDaysAgo(0);
     setLoading(true);
     setError(null);
-    const base = import.meta.env.VITE_API_URL || "";
+    const base = import.meta.env.DEV ? "http://localhost:5000" : (import.meta.env.VITE_API_URL || "");
     fetch(`${base}/api/progress?from=${from}&to=${to}`, { headers: getAuthHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load progress");

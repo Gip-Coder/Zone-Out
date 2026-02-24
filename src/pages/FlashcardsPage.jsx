@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Layers, Loader, ChevronRight, ChevronLeft, RotateCcw, Sparkles, FileText } from "lucide-react";
 import { getAllCourses } from "../utils/studyVaultDb";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.DEV ? "http://localhost:5000" : (import.meta.env.VITE_API_URL || "");
 
 function getAuthHeaders() {
   const token = localStorage.getItem("token");

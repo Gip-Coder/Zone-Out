@@ -31,9 +31,18 @@ app.use("/api/auth", authRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/progress", progressRoutes);
 
-app.use(errorHandler);
 app.use("/api/goals", goalRoutes);
 
-app.listen(process.env.PORT, () => {
-  console.log("Server running");
-});
+// Error Handler must be the LAST middleware
+app.use(errorHandler);
+
+// Export app for Vercel Serverless
+export default app;
+
+// Only start the server locally if not in a serverless environment
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
