@@ -115,3 +115,19 @@ Return RAW JSON only, no markdown or explanation:
     return manualFlashcardsFallback(courseName, moduleTitle, topicList);
   }
 }
+
+/** Raw generation for frontend custom workflows */
+export const generateRawContent = async (prompt) => {
+  if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) {
+    throw new Error("Set OPENROUTER_API_KEY or GEMINI_API_KEY on the server for AI fallback.");
+  }
+  try {
+    return process.env.OPENROUTER_API_KEY ? await callOpenRouter(prompt) : await callGemini(prompt);
+  } catch (error) {
+    if (process.env.OPENROUTER_API_KEY && process.env.GEMINI_API_KEY) {
+      console.log("Generate: primary provider failed, fallback to Gemini");
+      return await callGemini(prompt);
+    }
+    throw error;
+  }
+};

@@ -1,4 +1,4 @@
-import { generateAIResponse, generateThinkResponse, generateChatResponse, generateFlashcards } from "../services/aiService.js";
+import { generateAIResponse, generateThinkResponse, generateChatResponse, generateFlashcards, generateRawContent } from "../services/aiService.js";
 
 export const handleFlashcardsRequest = async (req, res) => {
   try {
@@ -32,6 +32,20 @@ export const handleThinkRequest = async (req, res) => {
     const result = await generateThinkResponse(userInput, context || {});
     res.json(result);
   } catch (error) {
+    console.error("AI think failed:", error);
     res.status(500).json({ message: "AI think failed" });
+  }
+};
+
+export const handleGenerateRequest = async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ message: "Prompt is required" });
+
+  try {
+    const response = await generateRawContent(prompt);
+    res.json({ response });
+  } catch (error) {
+    console.error("AI generate text failed:", error);
+    res.status(500).json({ message: "AI text generation failed" });
   }
 };

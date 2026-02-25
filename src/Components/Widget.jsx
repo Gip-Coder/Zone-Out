@@ -9,6 +9,7 @@ export default function Widget({
     defaultPosition,
     minWidth = 300,
     minHeight = 200,
+    baseWidth,
     baseHeight,
     lockAspectRatio = false,
     hideHeader = false,

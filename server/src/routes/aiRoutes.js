@@ -1,11 +1,13 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
-import { handleAIRequest, handleThinkRequest, handleFlashcardsRequest } from "../controllers/aiController.js";
+import { aiLimiter } from "../middleware/rateLimiter.js";
+import { handleAIRequest, handleThinkRequest, handleFlashcardsRequest, handleGenerateRequest } from "../controllers/aiController.js";
 
 const router = express.Router();
 
-router.post("/chat", protect, handleAIRequest);
-router.post("/think", protect, handleThinkRequest);
-router.post("/flashcards", protect, handleFlashcardsRequest);
+router.post("/chat", protect, aiLimiter, handleAIRequest);
+router.post("/think", protect, aiLimiter, handleThinkRequest);
+router.post("/flashcards", protect, aiLimiter, handleFlashcardsRequest);
+router.post("/generate", protect, aiLimiter, handleGenerateRequest);
 
 export default router;

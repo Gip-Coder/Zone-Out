@@ -1,15 +1,10 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const MODEL = "gemini-2.5-flash";
+import { api } from "./apiClient";
 
 export class NeuralBrain {
-
   constructor(getAppState, dispatch) {
     this.getAppState = getAppState;
     this.dispatch = dispatch;
-
-    const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
-    this.model = genAI.getGenerativeModel({ model: MODEL });
+    // No more client-side model initialization
   }
 
   async think(userInput) {
@@ -20,9 +15,9 @@ export class NeuralBrain {
       view: state.view,
       activeCourse: state.activeCourse
         ? {
-            name: state.activeCourse.name,
-            modules: state.activeCourse.modules?.map(m => m.title)
-          }
+          name: state.activeCourse.name,
+          modules: state.activeCourse.modules?.map(m => m.title)
+        }
         : null,
       timer: {
         seconds: state.focusTime,
@@ -52,20 +47,25 @@ Respond STRICTLY in RAW JSON:
 }
 `;
 
-    const result = await this.model.generateContent(prompt);
-    const text = result.response.text();
+    try {
+      const result = await api.post("/ai/generate", { prompt });
+      const text = result.response || "";
 
-    const clean = text
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+      const clean = text
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
 
-    const parsed = JSON.parse(clean);
+      const parsed = JSON.parse(clean);
 
-    if (parsed.action) {
-      await this.dispatch(parsed.action);
+      if (parsed.action) {
+        await this.dispatch(parsed.action);
+      }
+
+      return parsed.text;
+    } catch (e) {
+      console.error("NeuralBrain generate error", e);
+      throw new Error("NeuralBrain failed to think.");
     }
-
-    return parsed.text;
   }
 }
