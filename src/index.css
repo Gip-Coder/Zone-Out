@@ -4,49 +4,87 @@
 
 @layer base {
   :root {
-    /* ================= DARK THEME ================= */
-    --bg-primary: #0f172a;
-    --bg-secondary: #17132b;
-    --bg-tertiary: #1f1a38;
+    /* ================= DARK THEME - FUTURISTIC ================= */
+    --bg-primary: #0a0e27;
+    --bg-secondary: #131829;
+    --bg-tertiary: #1a1f3a;
+    --bg-quaternary: #232d4d;
     --glass: rgba(255, 255, 255, 0.05);
-    --text-primary: #e2e8f0;
-    --text-secondary: rgba(255, 255, 255, 0.65);
+    --text-primary: #e8f0ff;
+    --text-secondary: rgba(232, 240, 255, 0.65);
+    --text-tertiary: rgba(232, 240, 255, 0.45);
 
-    --accent-primary: #a855f7;
-    /* Violet */
+    --accent-primary: #6366f1;
+    /* Indigo */
     --accent-secondary: #ec4899;
     /* Pink */
-    --accent-tertiary: #7c3aed;
-    /* Purple */
+    --accent-tertiary: #3b82f6;
+    /* Blue */
+    
+    --accent-success: #10b981;
+    --accent-warning: #f59e0b;
+    --accent-error: #ef4444;
 
-    --neon-purple: #a855f7;
+    --neon-indigo: #6366f1;
     --neon-pink: #ec4899;
     --neon-blue: #3b82f6;
+    --neon-cyan: #06b6d4;
 
-    --button-gradient: linear-gradient(135deg, #7c3aed, #a855f7, #ec4899);
-    --glow-strong: 0 0 40px rgba(168, 85, 247, 0.6);
-    --glow-soft: 0 0 20px rgba(236, 72, 153, 0.4);
+    --button-gradient: linear-gradient(135deg, #6366f1, #3b82f6, #06b6d4);
+    --button-gradient-secondary: linear-gradient(135deg, #ec4899, #f43f5e);
+    --glow-strong: 0 0 40px rgba(99, 102, 241, 0.6);
+    --glow-soft: 0 0 20px rgba(59, 130, 246, 0.4);
+    --glow-pink: 0 0 20px rgba(236, 72, 153, 0.4);
+    
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+
+    --background-image-main: radial-gradient(circle at 50% -20%, #2e1065 0%, #0a0e27 100%);
+    --card-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+    --card-shadow-hover: 0 16px 48px rgba(99, 102, 241, 0.25);
+  }
+
+  /* ================= LIGHT THEME - CLEAN GREEN ================= */
+  [data-theme="light"] {
+    --bg-primary: #fafbf8;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f0fdf4;
+    --bg-quaternary: #e7f5e1;
+    --glass: rgba(0, 0, 0, 0.02);
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --text-tertiary: #9ca3af;
+    
+    --accent-primary: #16a34a;
+    /* Green */
+    --accent-secondary: #059669;
+    /* Emerald */
+    --accent-tertiary: #0d9488;
+    /* Teal */
+    
+    --accent-success: #16a34a;
+    --accent-warning: #f59e0b;
+    --accent-error: #dc2626;
+
+    --neon-indigo: transparent;
+    --neon-pink: transparent;
+    --neon-blue: transparent;
+    --neon-cyan: transparent;
+
+    --button-gradient: linear-gradient(135deg, #16a34a, #059669);
+    --button-gradient-secondary: linear-gradient(135deg, #10b981, #0d9488);
+    --glow-strong: 0 0 25px rgba(22, 163, 74, 0.2);
+    --glow-soft: 0 0 15px rgba(22, 163, 74, 0.15);
+    --glow-pink: 0 0 15px rgba(22, 163, 74, 0.15);
+    
     --radius-lg: 20px;
     --radius-md: 14px;
     --radius-sm: 10px;
 
-    --background-image-main: radial-gradient(circle at 50% -20%, #2e1065 0%, #0f172a 100%);
-  }
-
-  /* ================= LIGHT THEME ================= */
-  [data-theme="light"] {
-    --bg-primary: #faf5ff;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #f3e8ff;
-    --glass: rgba(0, 0, 0, 0.04);
-    --text-primary: #2e1065;
-    --text-secondary: #6b21a8;
-    --accent-primary: #7c3aed;
-    --accent-secondary: #db2777;
-    --accent-tertiary: #9333ea;
-    --button-gradient: linear-gradient(135deg, #9333ea, #c026d3, #db2777);
-    --glow-strong: 0 0 25px rgba(147, 51, 234, 0.4);
-    --glow-soft: 0 0 15px rgba(219, 39, 119, 0.25);
+    --background-image-main: linear-gradient(135deg, #fafbf8 0%, #f0fdf4 100%);
+    --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    --card-shadow-hover: 0 12px 24px rgba(0, 0, 0, 0.1);
   }
 
   body {
@@ -77,12 +115,30 @@
     text-shadow: 0 0 8px rgba(168, 85, 247, 0.6);
   }
 
+  /* Dark Theme Colors for Tailwind */
+  .dark .bg-slate-900 {
+    @apply transition-colors duration-300;
+  }
+
+  .dark .text-gray-400 {
+    color: rgba(232, 240, 255, 0.65);
+  }
+
+  .dark .text-gray-300 {
+    color: rgba(232, 240, 255, 0.75);
+  }
+
   /* Focus Glow */
   input:focus,
   textarea:focus {
     border-color: var(--accent-primary);
     box-shadow: var(--glow-soft);
     outline: none;
+  }
+
+  /* Smooth scroll */
+  html {
+    scroll-behavior: smooth;
   }
 
   /* Header responsive */

@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { ToastContext } from './context/ToastContext';
+import { ThemeContext } from './context/ThemeContext';
 import Timer from './Components/Timer';
 import MusicPlayer from './Components/MusicPlayer';
 import StudyGoals from './Components/StudyGoals';
 import NotesSection from './Components/NotesSection';
 import Auth from './Components/Auth';
 import Header from './Components/Header';
+import Sidebar from './Components/Sidebar';
 import { Bot, Send, X, Music, Timer as TimerIcon } from 'lucide-react';
 import { motion } from "framer-motion";
 import { Brain, Chatbot } from './agent';
@@ -200,19 +202,27 @@ export default function App() {
   };
 
   // =============================
-  // MAIN UI (Header + Routes)
+  // MAIN UI (Header + Sidebar + Routes)
   // =============================
+  const { theme } = useContext(ThemeContext);
+  
   return (
     <motion.div
-      className="dashboard-container"
-      style={appLayout}
+      className={`dashboard-container ${theme === 'dark' ? 'dark' : 'light'}`}
+      style={{
+        ...appLayout,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
       <Header onLogout={handleLogout} user={user} />
-
-      <main style={mainContentStyle}>
+      
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <Sidebar />
+        <main style={{ ...mainContentStyle, marginLeft: 'clamp(0px, 100vw - 1200px, 288px)', width: '100%', overflow: 'auto' }}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/timeline" element={<TimelinePage goals={goals} setGoals={setGoals} />} />
@@ -225,7 +235,8 @@ export default function App() {
           <Route path="/settings" element={<PlaceholderPage title="Settings" />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Routes>
-      </main>
+        </main>
+      </div>
 
       {/* Chatbot: general student queries (Q&A only) */}
       <Chatbot brain={brain} placeholder="Ask a study question..." />
