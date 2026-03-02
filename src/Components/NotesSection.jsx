@@ -97,41 +97,41 @@ export default function App() {
 
   useEffect(() => {
     const load = async () => {
-      try { 
+      try {
         const c = await dbAPI.getAll(STORE_COURSES) || [];
         const g = await dbAPI.getAll(STORE_GOALS) || [];
         setCourses(c);
         setGoals(g);
-      } 
-      catch (e) { console.error("DB Error", e); } 
+      }
+      catch (e) { console.error("DB Error", e); }
       finally { setLoadingDB(false); }
     };
     load();
   }, []);
 
   // --- UI STATE ---
-  const [view, setView] = useState('dashboard'); 
+  const [view, setView] = useState('dashboard');
   const [activeCourseId, setActiveCourseId] = useState(null);
-  
+
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSyllabusModal, setShowSyllabusModal] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
-  
+
   // Notes State
-  const [showNotesModal, setShowNotesModal] = useState(false); 
+  const [showNotesModal, setShowNotesModal] = useState(false);
   const [activeModuleForNotes, setActiveModuleForNotes] = useState(null);
 
   // Video State
   const [showVideoModal, setShowVideoModal] = useState(false);
-  
+
   // Accordions & Chat
   const [expandedSyllabusIndex, setExpandedSyllabusIndex] = useState(null);
-  const [expandedFileModuleIndex, setExpandedFileModuleIndex] = useState(0); 
-  const [showChat, setShowChat] = useState(false); 
-  
+  const [expandedFileModuleIndex, setExpandedFileModuleIndex] = useState(0);
+  const [showChat, setShowChat] = useState(false);
+
   // Chat Data
-  const [chatHistory, setChatHistory] = useState([{ role: 'model', text: "I'm Study Buddy! I can control the app. Ask me to 'Start a 40 min timer' or 'Go to goals'."}]);
+  const [chatHistory, setChatHistory] = useState([{ role: 'model', text: "I'm Study Buddy! I can control the app. Ask me to 'Start a 40 min timer' or 'Go to goals'." }]);
   const [chatInput, setChatInput] = useState("");
   const [isChatting, setIsChatting] = useState(false);
   const chatEndRef = useRef(null);
@@ -154,12 +154,12 @@ export default function App() {
 
   // Inputs
   const [searchQuery, setSearchQuery] = useState("");
-  const [syllabusMode, setSyllabusMode] = useState('pdf'); 
+  const [syllabusMode, setSyllabusMode] = useState('pdf');
   const [newCode, setNewCode] = useState("");
   const [newName, setNewName] = useState("");
   const [rawSyllabusText, setRawSyllabusText] = useState("");
-  const [manualModuleLines, setManualModuleLines] = useState(""); 
-  
+  const [manualModuleLines, setManualModuleLines] = useState("");
+
   // Goal Inputs
   const [goalTitle, setGoalTitle] = useState("");
   const [goalDate, setGoalDate] = useState("");
@@ -181,7 +181,7 @@ export default function App() {
 
   // --- CENTRALIZED BRAIN (all AI goes through here) ---
   const getAppStateRef = useRef(() => ({}));
-  const dispatchRef = useRef(() => {});
+  const dispatchRef = useRef(() => { });
   getAppStateRef.current = () => ({
     view,
     activeCourseId,
@@ -207,16 +207,16 @@ export default function App() {
     });
     return brain.cleanAndParseJSON(result.response.text());
   };
-  
-  const resetForm = () => { 
-    setShowAddModal(false); 
-    setNewCode(""); 
-    setNewName(""); 
-    setRawSyllabusText(""); 
+
+  const resetForm = () => {
+    setShowAddModal(false);
+    setNewCode("");
+    setNewName("");
+    setRawSyllabusText("");
     setManualModuleLines("");
-    setStatusMsg(""); 
+    setStatusMsg("");
   };
-  
+
   const readFileAsUrl = (file) => URL.createObjectURL(file);
 
   // --- MANUAL FALLBACKS (when API key exhausted or AI fails) ---
@@ -336,17 +336,17 @@ export default function App() {
         showToast("Timer Paused");
         break;
       case 'NAVIGATE':
-        if(action.view === 'dashboard') setView('dashboard');
-        if(action.view === 'goals') setView('goals');
-        if(action.view === 'course' && activeCourse) setView('course-detail');
+        if (action.view === 'dashboard') setView('dashboard');
+        if (action.view === 'goals') setView('goals');
+        if (action.view === 'course' && activeCourse) setView('course-detail');
         break;
       case 'OPEN_RESOURCE':
-         // Physical change: Open the modal
-         if (action.resource === 'notes' && action.moduleName) {
-             setActiveModuleForNotes(action.moduleName);
-             setShowNotesModal(true);
-         }
-         break;
+        // Physical change: Open the modal
+        if (action.resource === 'notes' && action.moduleName) {
+          setActiveModuleForNotes(action.moduleName);
+          setShowNotesModal(true);
+        }
+        break;
       case 'ADD_GOAL':
         const newGoal = {
           id: Date.now(),
@@ -383,7 +383,7 @@ export default function App() {
 
   // --- VIDEO SEARCH LOGIC (Smart Search) ---
   const handleGetVideoRec = async () => {
-    if(!videoModuleId && videoModuleId !== 0) return showToast("Select a module", "error");
+    if (!videoModuleId && videoModuleId !== 0) return showToast("Select a module", "error");
     setIsVideoLoading(true); setVideoRec(null);
     const mod = activeCourse.modules[videoModuleId];
     try {
@@ -573,7 +573,7 @@ export default function App() {
   const handleSmartDrop = async (files) => {
     if (!files || files.length === 0) return;
     if (courses.length === 0) return showToast("Create a course first", "error");
-    setIsProcessing(true); setStatusMsg(`Analyzing ${files.length} files...`); 
+    setIsProcessing(true); setStatusMsg(`Analyzing ${files.length} files...`);
     const updatedList = [...courses];
     const changedIds = new Set();
     const filesData = [];
@@ -670,7 +670,7 @@ export default function App() {
   const toggleSyllabusAccordion = (idx) => setExpandedSyllabusIndex(expandedSyllabusIndex === idx ? null : idx);
 
   // --- RENDER HELPERS ---
-  if (loadingDB) return <div className="glass-panel" style={{...containerStyle, alignItems:'center', justifyContent:'center'}}><Loader className="spin-anim" /></div>;
+  if (loadingDB) return <div className="glass-panel" style={{ ...containerStyle, alignItems: 'center', justifyContent: 'center' }}><Loader className="spin-anim" /></div>;
 
   return (
     <div className="glass-panel" style={containerStyle}>
@@ -689,38 +689,38 @@ export default function App() {
       </style>
 
       {toast && <div style={{ ...toastStyle, background: toast.type === 'error' ? '#ef4444' : '#10b981' }}>{toast.msg}</div>}
-      
+
       {/* GLOBAL FILE INPUT */}
-      <input type="file" multiple ref={sortFileInputRef} style={{display:'none'}} onChange={(e) => handleSmartDrop(e.target.files)} />
+      <input type="file" multiple ref={sortFileInputRef} style={{ display: 'none' }} onChange={(e) => handleSmartDrop(e.target.files)} />
 
       {/* GLOBAL CHAT "STUDY BUDDY" OVERLAY */}
       {showChat && (
-        <div style={{position:'fixed', bottom: 80, right: 20, width: 350, height: 500, background: '#2e1065', borderRadius: 16, boxShadow: '0 10px 40px rgba(0,0,0,0.5)', zIndex: 4000, display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.2)'}}>
-          <div style={{padding: 15, background: '#4c1d95', borderTopLeftRadius: 16, borderTopRightRadius: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <div style={{display:'flex', alignItems:'center', gap: 10}}>
-              <Bot size={20} color="#f472b6"/>
+        <div style={{ position: 'fixed', bottom: 80, right: 20, width: 350, height: 500, background: 'var(--bg-secondary)', borderRadius: 16, boxShadow: '0 10px 40px rgba(0,0,0,0.5)', zIndex: 4000, display: 'flex', flexDirection: 'column', border: '1px solid var(--glass)' }}>
+          <div style={{ padding: 15, background: 'var(--overlay-bg)', borderTopLeftRadius: 16, borderTopRightRadius: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Bot size={20} color="#f472b6" />
               <strong>Study Buddy AI</strong>
             </div>
-            <X size={18} style={{cursor:'pointer'}} onClick={()=>setShowChat(false)}/>
+            <X size={18} style={{ cursor: 'pointer' }} onClick={() => setShowChat(false)} />
           </div>
-          <div style={{flex: 1, overflowY: 'auto', padding: 15, display: 'flex', flexDirection: 'column', gap: 10}}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: 15, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {chatHistory.map((msg, i) => (
-              <div key={i} style={{alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', background: msg.role === 'user' ? '#f472b6' : 'rgba(255,255,255,0.1)', padding: '8px 12px', borderRadius: 10, maxWidth: '85%', fontSize: '0.9rem'}}>
+              <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', background: msg.role === 'user' ? 'var(--accent-primary)' : 'var(--glass)', padding: '8px 12px', borderRadius: 10, maxWidth: '85%', fontSize: '0.9rem' }}>
                 {msg.text}
               </div>
             ))}
-            {isChatting && <div style={{alignSelf: 'flex-start', fontSize: '0.8rem', opacity: 0.7}}>Thinking...</div>}
+            {isChatting && <div style={{ alignSelf: 'flex-start', fontSize: '0.8rem', opacity: 0.7 }}>Thinking...</div>}
             <div ref={chatEndRef} />
           </div>
-          <div style={{padding: 10, display: 'flex', gap: 10, borderTop: '1px solid rgba(255,255,255,0.1)'}}>
-            <input 
-              value={chatInput} 
-              onChange={e=>setChatInput(e.target.value)} 
-              onKeyDown={e=>e.key==='Enter' && handleSendMessage()} 
-              placeholder="Ask to set timer, add goals..." 
+          <div style={{ padding: 10, display: 'flex', gap: 10, borderTop: '1px solid var(--glass)' }}>
+            <input
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+              placeholder="Ask to set timer, add goals..."
               style={inputStyle}
             />
-            <button onClick={handleSendMessage} style={{...primaryBtnStyle, width: 40, padding: 0}}><Send size={16}/></button>
+            <button onClick={handleSendMessage} style={{ ...primaryBtnStyle, width: 40, padding: 0 }}><Send size={16} /></button>
           </div>
         </div>
       )}
@@ -735,82 +735,82 @@ export default function App() {
       {/* 1. Video Recommendation Modal */}
       {showVideoModal && activeCourse && (
         <div style={modalOverlayStyle}>
-          <div style={{...modalContentStyle(isMobile), textAlign: 'center'}}>
-            <h3 style={{marginBottom:15}}><Youtube style={{marginBottom:-3, marginRight:8}}/> Video Recommender</h3>
+          <div style={{ ...modalContentStyle(isMobile), textAlign: 'center' }}>
+            <h3 style={{ marginBottom: 15 }}><Youtube style={{ marginBottom: -3, marginRight: 8 }} /> Video Recommender</h3>
             {!videoRec ? (
               <>
-                <p style={{opacity:0.7, marginBottom:15}}>Select a module to find the best tutorial.</p>
-                <select value={videoModuleId} onChange={e => setVideoModuleId(e.target.value)} style={{...inputStyle, background: 'rgba(0,0,0,0.3)'}}>
+                <p style={{ opacity: 0.7, marginBottom: 15 }}>Select a module to find the best tutorial.</p>
+                <select value={videoModuleId} onChange={e => setVideoModuleId(e.target.value)} style={{ ...inputStyle, background: 'var(--overlay-bg)' }}>
                   <option value="">Select Module...</option>
                   {activeCourse.modules.map((m, i) => <option key={i} value={i}>{m.title}</option>)}
                 </select>
-                <button onClick={handleGetVideoRec} disabled={isVideoLoading} style={{...primaryBtnStyle, width:'100%', marginTop:10}}>
-                  {isVideoLoading ? <Loader className="spin-anim"/> : "Find Best Video"}
+                <button onClick={handleGetVideoRec} disabled={isVideoLoading} style={{ ...primaryBtnStyle, width: '100%', marginTop: 10 }}>
+                  {isVideoLoading ? <Loader className="spin-anim" /> : "Find Best Video"}
                 </button>
               </>
             ) : (
-              <div className="interactive-card" style={{marginTop: 15, background: 'rgba(255,255,255,0.1)', padding: 15, borderRadius: 12, cursor: 'pointer'}} onClick={openSmartVideoLink}>
-                <div style={{width:'100%', height:120, background: '#000', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent:'center', marginBottom:10}}>
-                  <Play size={40} fill="white" />
+              <div className="interactive-card" style={{ marginTop: 15, background: 'var(--glass)', padding: 15, borderRadius: 12, cursor: 'pointer' }} onClick={openSmartVideoLink}>
+                <div style={{ width: '100%', height: 120, background: 'var(--bg-primary)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                  <Play size={40} fill="var(--text-primary)" />
                 </div>
-                <div style={{textAlign:'left'}}>
-                  <div style={{fontWeight:'bold', fontSize:'1rem', marginBottom: 4}}>{videoRec.videoTitle}</div>
-                  <div style={{fontSize:'0.8rem', opacity:0.7, marginBottom: 8}}>by {videoRec.channelName}</div>
-                  <div style={{fontSize:'0.8rem', color: '#f472b6'}}>AI Reason: {videoRec.reason}</div>
-                  <div style={{fontSize:'0.7rem', color: '#10b981', marginTop: 5}}>Click to Watch Best Match →</div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: 4 }}>{videoRec.videoTitle}</div>
+                  <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: 8 }}>by {videoRec.channelName}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#f472b6' }}>AI Reason: {videoRec.reason}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#10b981', marginTop: 5 }}>Click to Watch Best Match →</div>
                 </div>
               </div>
             )}
-            <button onClick={() => {setShowVideoModal(false); setVideoRec(null); setVideoModuleId("")}} style={{...secondaryBtnStyle, width:'100%', marginTop:15}}>Close</button>
+            <button onClick={() => { setShowVideoModal(false); setVideoRec(null); setVideoModuleId("") }} style={{ ...secondaryBtnStyle, width: '100%', marginTop: 15 }}>Close</button>
           </div>
         </div>
       )}
 
       {/* 2. Quiz Modal */}
       {(quizLoading || quizData) && (
-        <div style={{position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#1e1b4b', zIndex: 3000, borderRadius: '16px', display: 'flex', flexDirection: 'column'}}>
-          <div style={{padding: '25px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column'}}>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'var(--bg-secondary)', zIndex: 3000, borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '25px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
             {quizLoading ? (
-              <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent: 'center', height: '100%', gap:20}}>
-                <Brain size={64} className="spin-anim" color="#f472b6"/>
-                <h2 style={{color: 'white'}}>Generating Exam...</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 20 }}>
+                <Brain size={64} className="spin-anim" color="var(--accent-primary)" />
+                <h2 style={{ color: 'var(--text-primary)' }}>Generating Exam...</h2>
               </div>
             ) : quizData.showResult ? (
-              <div style={{textAlign:'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
-                <div style={{fontSize:'5rem', marginBottom:20}}>{quizData.score >= 4 ? '🏆' : '📚'}</div>
+              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                <div style={{ fontSize: '5rem', marginBottom: 20 }}>{quizData.score >= 4 ? '🏆' : '📚'}</div>
                 <h1>Score: {quizData.score} / 5</h1>
-                <p style={{color: 'rgba(255,255,255,0.7)'}}>{quizData.score >= 4 ? "Mastery Achieved!" : "Keep Studying!"}</p>
-                <button onClick={closeQuiz} style={{...primaryBtnStyle, width:'200px', marginTop:30}}>Done</button>
+                <p style={{ color: 'rgba(255,255,255,0.7)' }}>{quizData.score >= 4 ? "Mastery Achieved!" : "Keep Studying!"}</p>
+                <button onClick={closeQuiz} style={{ ...primaryBtnStyle, width: '200px', marginTop: 30 }}>Done</button>
               </div>
             ) : (
-              <div style={{display:'flex', flexDirection:'column', height:'100%', overflow:'hidden'}}>
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20, flexShrink:0}}>
-                  <span style={{opacity:0.6, fontSize: '1.1rem'}}>Question {quizData.current + 1} of 5</span>
-                  <button onClick={closeQuiz} style={{background: 'transparent', border:'none', cursor:'pointer', color:'white'}}><X size={28}/></button>
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexShrink: 0 }}>
+                  <span style={{ opacity: 0.6, fontSize: '1.1rem' }}>Question {quizData.current + 1} of 5</span>
+                  <button onClick={closeQuiz} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}><X size={28} /></button>
                 </div>
-                <h2 style={{marginBottom:30, flexShrink:0, lineHeight: 1.4}}>{quizData.questions[quizData.current].q}</h2>
-                <div style={{display:'flex', flexDirection:'column', gap:15, flexShrink:0}}>
+                <h2 style={{ marginBottom: 30, flexShrink: 0, lineHeight: 1.4 }}>{quizData.questions[quizData.current].q}</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 15, flexShrink: 0 }}>
                   {quizData.questions[quizData.current].options.map((opt, i) => {
-                    let bg = 'rgba(255,255,255,0.05)';
-                    let border = '1px solid rgba(255,255,255,0.1)';
+                    let bg = 'var(--glass)';
+                    let border = '1px solid var(--glass)';
                     if (selectedOption !== null) {
-                      if (i === quizData.questions[quizData.current].answer) { bg = 'rgba(16, 185, 129, 0.2)'; border = '1px solid #10b981'; } 
+                      if (i === quizData.questions[quizData.current].answer) { bg = 'rgba(16, 185, 129, 0.2)'; border = '1px solid #10b981'; }
                       else if (i === selectedOption) { bg = 'rgba(239, 68, 68, 0.2)'; border = '1px solid #ef4444'; }
                     }
                     return (
-                      <button key={i} onClick={() => handleQuizAnswer(i)} disabled={selectedOption !== null} style={{...btnStyle, background: bg, border: border, justifyContent:'flex-start', padding:20, textAlign:'left', fontSize: '1rem'}}>
-                        <span style={{marginRight:15, fontWeight:'bold', color: 'rgba(255,255,255,0.5)'}}>{String.fromCharCode(65+i)}</span> {opt}
+                      <button key={i} onClick={() => handleQuizAnswer(i)} disabled={selectedOption !== null} style={{ ...btnStyle, background: bg, border: border, justifyContent: 'flex-start', padding: 20, textAlign: 'left', fontSize: '1rem' }}>
+                        <span style={{ marginRight: 15, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{String.fromCharCode(65 + i)}</span> {opt}
                       </button>
                     );
                   })}
                 </div>
                 {selectedOption !== null && (
-                  <div style={{display:'flex', flexDirection:'column', flex:1, overflow:'hidden', marginTop: 20}}>
-                    <div style={{flex:1, overflowY:'auto', padding:20, background:'rgba(255,255,255,0.05)', borderRadius:12, marginBottom:15, borderLeft: '4px solid #f472b6'}}>
-                      <strong style={{color:'#f472b6', display:'block', marginBottom:8, fontSize: '1.1rem'}}>Why?</strong>
-                      <p style={{fontSize:'1rem', lineHeight:'1.6', margin:0, opacity:0.9}}>{quizData.questions[quizData.current].explanation}</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', marginTop: 20 }}>
+                    <div style={{ flex: 1, overflowY: 'auto', padding: 20, background: 'var(--bg-secondary)', borderRadius: 12, marginBottom: 15, borderLeft: '4px solid var(--accent-primary)' }}>
+                      <strong style={{ color: 'var(--accent-primary)', display: 'block', marginBottom: 8, fontSize: '1.1rem' }}>Why?</strong>
+                      <p style={{ fontSize: '1rem', lineHeight: '1.6', margin: 0, opacity: 0.9 }}>{quizData.questions[quizData.current].explanation}</p>
                     </div>
-                    <button onClick={handleNextQuestion} style={{...primaryBtnStyle, padding: '15px', fontSize: '1.1rem'}}>
+                    <button onClick={handleNextQuestion} style={{ ...primaryBtnStyle, padding: '15px', fontSize: '1.1rem' }}>
                       {quizData.current + 1 === quizData.questions.length ? "Finish Quiz" : "Next Question →"}
                     </button>
                   </div>
@@ -822,36 +822,36 @@ export default function App() {
       )}
 
       {/* 3. Goal Modal */}
-      {showGoalModal && <div style={modalOverlayStyle}><div style={modalContentStyle(isMobile)}><h3 style={{marginBottom:20}}>New Study Plan</h3><input placeholder="Goal Name (e.g. CAT2)" value={goalTitle} onChange={e=>setGoalTitle(e.target.value)} style={inputStyle}/><input type="date" value={goalDate} onChange={e=>setGoalDate(e.target.value)} style={inputStyle}/><select value={goalCourseId} onChange={e=>setGoalCourseId(e.target.value)} style={{...inputStyle, background:'#1e1b4b', border:'1px solid #ffffff22'}}><option value="">Select Course</option>{courses.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><button onClick={handleCreateGoal} style={{...primaryBtnStyle, marginTop:20}} disabled={isProcessing}>{isProcessing?<Loader className="spin-anim"/>:"Generate Plan"}</button><button onClick={()=>setShowGoalModal(false)} style={{...secondaryBtnStyle, width:'100%', marginTop:10}}>Cancel</button></div></div>}
+      {showGoalModal && <div style={modalOverlayStyle}><div style={modalContentStyle(isMobile)}><h3 style={{ marginBottom: 20 }}>New Study Plan</h3><input placeholder="Goal Name (e.g. CAT2)" value={goalTitle} onChange={e => setGoalTitle(e.target.value)} style={inputStyle} /><input type="date" value={goalDate} onChange={e => setGoalDate(e.target.value)} style={inputStyle} /><select value={goalCourseId} onChange={e => setGoalCourseId(e.target.value)} style={{ ...inputStyle, background: 'var(--bg-primary)', border: '1px solid var(--glass)' }}><option value="">Select Course</option>{courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select><button onClick={handleCreateGoal} style={{ ...primaryBtnStyle, marginTop: 20 }} disabled={isProcessing}>{isProcessing ? <Loader className="spin-anim" /> : "Generate Plan"}</button><button onClick={() => setShowGoalModal(false)} style={{ ...secondaryBtnStyle, width: '100%', marginTop: 10 }}>Cancel</button></div></div>}
 
       {/* 4. Add Course Modal */}
       {showAddModal && (
         <div style={modalOverlayStyle}>
           <div style={modalContentStyle(isMobile)}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}><h3>Add Course</h3><X onClick={resetForm} style={{cursor:'pointer'}}/></div>
-            <input placeholder="Code" value={newCode} onChange={e=>setNewCode(e.target.value)} style={inputStyle}/>
-            <input placeholder="Name" value={newName} onChange={e=>setNewName(e.target.value)} style={inputStyle}/>
-            <div style={{display:'flex', gap:10, margin:'15px 0', flexWrap:'wrap'}}>
-              <span onClick={()=>setSyllabusMode('pdf')} style={{color:syllabusMode==='pdf'?'#f472b6':'grey', cursor:'pointer'}}>PDF Upload</span>
-              <span onClick={()=>setSyllabusMode('text')} style={{color:syllabusMode==='text'?'#f472b6':'grey', cursor:'pointer'}}>Paste Text</span>
-              <span onClick={()=>setSyllabusMode('manual')} style={{color:syllabusMode==='manual'?'#f472b6':'grey', cursor:'pointer'}}>Manual (no AI)</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}><h3>Add Course</h3><X onClick={resetForm} style={{ cursor: 'pointer' }} /></div>
+            <input placeholder="Code" value={newCode} onChange={e => setNewCode(e.target.value)} style={inputStyle} />
+            <input placeholder="Name" value={newName} onChange={e => setNewName(e.target.value)} style={inputStyle} />
+            <div style={{ display: 'flex', gap: 10, margin: '15px 0', flexWrap: 'wrap' }}>
+              <span onClick={() => setSyllabusMode('pdf')} style={{ color: syllabusMode === 'pdf' ? '#f472b6' : 'grey', cursor: 'pointer' }}>PDF Upload</span>
+              <span onClick={() => setSyllabusMode('text')} style={{ color: syllabusMode === 'text' ? '#f472b6' : 'grey', cursor: 'pointer' }}>Paste Text</span>
+              <span onClick={() => setSyllabusMode('manual')} style={{ color: syllabusMode === 'manual' ? '#f472b6' : 'grey', cursor: 'pointer' }}>Manual (no AI)</span>
             </div>
             {syllabusMode === 'pdf' ? (
               <div style={dropZoneStyle}>
-                <input type="file" id="syl" accept=".pdf" onChange={e=>handleCreateCourse(e.target.files[0])} style={{display:'none'}}/>
-                <label htmlFor="syl" style={{cursor:'pointer', width:'100%', height:'100%', display:'flex', justifyContent:'center', alignItems:'center'}}>
-                  {isProcessing ? <div style={{display:'flex',gap:'10px'}}><Loader className="spin-anim"/> {statusMsg}</div> : "Upload PDF"}
+                <input type="file" id="syl" accept=".pdf" onChange={e => handleCreateCourse(e.target.files[0])} style={{ display: 'none' }} />
+                <label htmlFor="syl" style={{ cursor: 'pointer', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  {isProcessing ? <div style={{ display: 'flex', gap: '10px' }}><Loader className="spin-anim" /> {statusMsg}</div> : "Upload PDF"}
                 </label>
               </div>
             ) : syllabusMode === 'manual' ? (
               <>
-                <textarea placeholder="Module names (one per line). No PDF or AI needed." value={manualModuleLines} onChange={e=>setManualModuleLines(e.target.value)} style={{...inputStyle, height:100, resize:'none'}}/>
-                <button onClick={()=>handleCreateCourse()} disabled={isProcessing} style={{...primaryBtnStyle, width:'100%', marginTop:15}}>{isProcessing ? <div style={{display:'flex',gap:'10px', justifyContent:'center'}}><Loader className="spin-anim"/> {statusMsg}</div> : 'Create course'}</button>
+                <textarea placeholder="Module names (one per line). No PDF or AI needed." value={manualModuleLines} onChange={e => setManualModuleLines(e.target.value)} style={{ ...inputStyle, height: 100, resize: 'none' }} />
+                <button onClick={() => handleCreateCourse()} disabled={isProcessing} style={{ ...primaryBtnStyle, width: '100%', marginTop: 15 }}>{isProcessing ? <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}><Loader className="spin-anim" /> {statusMsg}</div> : 'Create course'}</button>
               </>
             ) : (
               <>
-                <textarea placeholder="Paste syllabus text..." value={rawSyllabusText} onChange={e=>setRawSyllabusText(e.target.value)} style={{...inputStyle, height:100, resize:'none'}}/>
-                <button onClick={()=>handleCreateCourse()} disabled={isProcessing} style={{...primaryBtnStyle, width:'100%', marginTop:15}}>{isProcessing ? <div style={{display:'flex',gap:'10px', justifyContent:'center'}}><Loader className="spin-anim"/> {statusMsg}</div> : 'Create'}</button>
+                <textarea placeholder="Paste syllabus text..." value={rawSyllabusText} onChange={e => setRawSyllabusText(e.target.value)} style={{ ...inputStyle, height: 100, resize: 'none' }} />
+                <button onClick={() => handleCreateCourse()} disabled={isProcessing} style={{ ...primaryBtnStyle, width: '100%', marginTop: 15 }}>{isProcessing ? <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}><Loader className="spin-anim" /> {statusMsg}</div> : 'Create'}</button>
               </>
             )}
           </div>
@@ -861,12 +861,12 @@ export default function App() {
       {/* 5. Syllabus Modal */}
       {showSyllabusModal && activeCourse && (
         <div style={modalOverlayStyle}>
-          <div style={{...modalContentStyle(isMobile), height:'80vh', overflowY:'auto'}}>
-            <div style={{display:'flex', justifyContent:'space-between', marginBottom:20}}><h3>Syllabus</h3><X onClick={()=>setShowSyllabusModal(false)} style={{cursor:'pointer'}}/></div>
-            {activeCourse.modules.map((m,i)=>(
-              <div key={i} style={{marginBottom:10, border:'1px solid #ffffff11', borderRadius:8}}>
-                <div onClick={()=>toggleSyllabusAccordion(i)} style={{padding:15, background:'rgba(255,255,255,0.05)', display:'flex', justifyContent:'space-between', cursor:'pointer'}}><span>{m.title}</span>{expandedSyllabusIndex===i?<ChevronUp size={16}/>:<ChevronDown size={16}/>}</div>
-                {expandedSyllabusIndex===i && <div style={{padding:15, background:'rgba(0,0,0,0.2)'}}><ol style={{margin:0, paddingLeft:20}}>{m.topics.map((t,j)=><li key={j}>{t}</li>)}</ol></div>}
+          <div style={{ ...modalContentStyle(isMobile), height: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}><h3>Syllabus</h3><X onClick={() => setShowSyllabusModal(false)} style={{ cursor: 'pointer' }} /></div>
+            {activeCourse.modules.map((m, i) => (
+              <div key={i} style={{ marginBottom: 10, border: '1px solid var(--glass)', borderRadius: 8 }}>
+                <div onClick={() => toggleSyllabusAccordion(i)} style={{ padding: 15, background: 'var(--glass)', display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}><span>{m.title}</span>{expandedSyllabusIndex === i ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
+                {expandedSyllabusIndex === i && <div style={{ padding: 15, background: 'var(--overlay-bg)' }}><ol style={{ margin: 0, paddingLeft: 20 }}>{m.topics.map((t, j) => <li key={j}>{t}</li>)}</ol></div>}
               </div>
             ))}
           </div>
@@ -876,15 +876,15 @@ export default function App() {
       {/* 6. Module Notes Modal (Large Size) */}
       {showNotesModal && activeCourse && activeModuleForNotes && (
         <div style={modalOverlayStyle}>
-          <div style={{...modalContentStyle(isMobile), height: '85vh', width: isMobile ? '95%' : '80%', maxWidth: '1000px', display: 'flex', flexDirection: 'column'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15}}>
-              <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
-                <FileText size={20} color="#f472b6"/>
-                <h3 style={{margin: 0}}>{activeModuleForNotes} Notes</h3>
+          <div style={{ ...modalContentStyle(isMobile), height: '85vh', width: isMobile ? '95%' : '80%', maxWidth: '1000px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <FileText size={20} color="#f472b6" />
+                <h3 style={{ margin: 0 }}>{activeModuleForNotes} Notes</h3>
               </div>
-              <div style={{display: 'flex', gap: 10}}>
-                <button onClick={() => showToast("Notes Saved")} style={{...btnStyle, background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontSize: '0.8rem'}}><Save size={14} style={{marginRight:5}}/> Auto-Saved</button>
-                <X onClick={() => setShowNotesModal(false)} style={{cursor: 'pointer'}} />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => showToast("Notes Saved")} style={{ ...btnStyle, background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontSize: '0.8rem' }}><Save size={14} style={{ marginRight: 5 }} /> Auto-Saved</button>
+                <X onClick={() => setShowNotesModal(false)} style={{ cursor: 'pointer' }} />
               </div>
             </div>
             <textarea
@@ -893,13 +893,13 @@ export default function App() {
               placeholder={`Type notes for ${activeModuleForNotes}...`}
               style={{
                 flex: 1,
-                background: 'rgba(0,0,0,0.2)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: 'white',
+                background: 'var(--overlay-bg)',
+                border: '1px solid var(--glass)',
+                color: 'var(--text-primary)',
                 resize: 'none',
                 padding: '20px',
                 borderRadius: '8px',
-                fontSize: '1.1rem', 
+                fontSize: '1.1rem',
                 lineHeight: '1.6',
                 outline: 'none',
                 fontFamily: 'inherit'
@@ -909,7 +909,7 @@ export default function App() {
         </div>
       )}
 
-      {confirmConfig && <div style={modalOverlayStyle}><div style={modalContentStyle(isMobile)}><h3>{confirmConfig.title}</h3><div style={{display:'flex', gap:10, marginTop:20}}><button onClick={()=>setConfirmConfig(null)} style={secondaryBtnStyle}>Cancel</button><button onClick={confirmConfig.onConfirm} style={{...primaryBtnStyle, background:'#ef4444'}}>Confirm</button></div></div></div>}
+      {confirmConfig && <div style={modalOverlayStyle}><div style={modalContentStyle(isMobile)}><h3>{confirmConfig.title}</h3><div style={{ display: 'flex', gap: 10, marginTop: 20 }}><button onClick={() => setConfirmConfig(null)} style={secondaryBtnStyle}>Cancel</button><button onClick={confirmConfig.onConfirm} style={{ ...primaryBtnStyle, background: '#ef4444' }}>Confirm</button></div></div></div>}
 
       {/* Manual file assign modal */}
       {manualSortState && (
@@ -928,18 +928,18 @@ export default function App() {
 
       {/* --- HEADER --- */}
       {view === 'course-detail' ? (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexShrink: 0, background: '#7b1fa2', padding: '12px 20px', borderRadius: 12, boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexShrink: 0, background: 'var(--bg-secondary)', border: '1px solid var(--glass)', padding: '12px 20px', borderRadius: 12, boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <ArrowLeft onClick={() => setView('dashboard')} style={{ cursor: 'pointer' }} size={20} />
-            <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#ff80ab' }}>{activeCourse?.code}</h2>
+            <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--accent-primary)' }}>{activeCourse?.code}</h2>
           </div>
-          <div style={{display:'flex', gap: 15}}>
-            <button onClick={()=>sortFileInputRef.current.click()} style={btnStyleCompact}><UploadCloud size={16}/></button>
-            <button onClick={()=>setShowVideoModal(true)} style={btnStyleCompact}>
-              <Youtube size={16}/> Video
+          <div style={{ display: 'flex', gap: 15 }}>
+            <button onClick={() => sortFileInputRef.current.click()} style={btnStyleCompact}><UploadCloud size={16} /></button>
+            <button onClick={() => setShowVideoModal(true)} style={btnStyleCompact}>
+              <Youtube size={16} /> Video
             </button>
-            <button onClick={()=>setShowSyllabusModal(true)} style={btnStyleCompact}><TableIcon size={16}/> Syllabus</button>
-            <button onClick={()=>handleDeleteCourse(activeCourseId)} style={{...btnStyleCompact, background: 'rgba(255,0,0,0.2)', color: '#ff80ab'}}><Trash2 size={16}/></button>
+            <button onClick={() => setShowSyllabusModal(true)} style={btnStyleCompact}><TableIcon size={16} /> Syllabus</button>
+            <button onClick={() => handleDeleteCourse(activeCourseId)} style={{ ...btnStyleCompact, background: 'rgba(255,0,0,0.2)', color: 'var(--accent-primary)' }}><Trash2 size={16} /></button>
           </div>
         </div>
       ) : (
@@ -949,46 +949,46 @@ export default function App() {
               <h2 style={{ margin: 0, fontSize: isMobile ? '1.2rem' : '1.5rem' }}>{view === 'goals' ? 'Timeline' : 'Study Vault'}</h2>
             </div>
           </div>
-          <div style={{display:'flex', gap:10}}>
-            <button onClick={()=>setView(view==='goals'?'dashboard':'goals')} style={{...btnStyle, background: view==='goals'?'#f472b6':'#ffffff11'}}><Calendar size={16}/><span style={{display:isMobile?'none':'block', marginLeft:5}}>Goals</span></button>
-            {view === 'dashboard' && <button onClick={()=>setShowAddModal(true)} style={btnStyle}><Plus size={16}/></button>}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={() => setView(view === 'goals' ? 'dashboard' : 'goals')} style={{ ...btnStyle, background: view === 'goals' ? 'var(--accent-primary)' : 'var(--glass)' }}><Calendar size={16} /><span style={{ display: isMobile ? 'none' : 'block', marginLeft: 5 }}>Goals</span></button>
+            {view === 'dashboard' && <button onClick={() => setShowAddModal(true)} style={btnStyle}><Plus size={16} /></button>}
           </div>
         </div>
       )}
 
       {/* --- MAIN CONTENT --- */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        
+
         {/* FOCUS SESSION (Restored for AI control) */}
-        
+
 
         {view === 'goals' && (
-          <div style={{display:'flex', flexDirection:'column', gap:20}}>
-            {goals.length === 0 ? <div style={{textAlign:'center', marginTop:50, opacity:0.5}}>No study plans yet. <br/><button onClick={()=>setShowGoalModal(true)} style={{...primaryBtnStyle, width:'auto', marginTop:20}}>Create One</button></div> :
-            goals.map(g => (
-              <div key={g.id} className="interactive-card" style={goalCardStyle}>
-                <div style={{display:'flex', justifyContent:'space-between', marginBottom:15}}>
-                  <div><h3 style={{margin:0}}>{g.title}</h3><span style={{fontSize:'0.8rem', opacity:0.6}}>{g.courseName} • Due {g.targetDate}</span></div>
-                  <Trash2 size={16} style={{cursor:'pointer', opacity:0.5}} onClick={()=>deleteGoal(g.id)}/>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {goals.length === 0 ? <div style={{ textAlign: 'center', marginTop: 50, opacity: 0.5 }}>No study plans yet. <br /><button onClick={() => setShowGoalModal(true)} style={{ ...primaryBtnStyle, width: 'auto', marginTop: 20 }}>Create One</button></div> :
+              goals.map(g => (
+                <div key={g.id} className="interactive-card" style={goalCardStyle}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 15 }}>
+                    <div><h3 style={{ margin: 0 }}>{g.title}</h3><span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{g.courseName} • Due {g.targetDate}</span></div>
+                    <Trash2 size={16} style={{ cursor: 'pointer', opacity: 0.5 }} onClick={() => deleteGoal(g.id)} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {g.plan.map((task, ti) => (
+                      <div key={ti} onClick={() => toggleGoalTask(g.id, ti)} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', opacity: task.done ? 0.4 : 1 }}>
+                        {task.done ? <CheckCircle size={18} color="#10b981" /> : <CheckSquare size={18} color="var(--text-secondary)" />}
+                        <span style={{ textDecoration: task.done ? 'line-through' : 'none' }}>{task.date}: {task.task}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style={{display:'flex', flexDirection:'column', gap:8}}>
-                  {g.plan.map((task, ti) => (
-                    <div key={ti} onClick={()=>toggleGoalTask(g.id, ti)} style={{display:'flex', alignItems:'center', gap:10, cursor:'pointer', opacity: task.done?0.4:1}}>
-                      {task.done ? <CheckCircle size={18} color="#10b981"/> : <CheckSquare size={18} color="#ffffff55"/>}
-                      <span style={{textDecoration: task.done?'line-through':'none'}}>{task.date}: {task.task}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         )}
 
         {view === 'dashboard' && (
           <>
-            {!showAddModal && <div onClick={()=>sortFileInputRef.current.click()} style={{...globalDropStyle, borderColor: dragActive ? '#f472b6' : '#ffffff22', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', padding:30}} onDragOver={e=>{e.preventDefault();setDragActive(true)}} onDragLeave={()=>setDragActive(false)} onDrop={e=>{e.preventDefault();setDragActive(false);handleSmartDrop(e.dataTransfer.files)}}>{isProcessing?<div style={{display:'flex',gap:10}}><Loader className="spin-anim"/>{statusMsg}</div>:<><UploadCloud size={32} style={{marginBottom:10, opacity:0.5}}/><div>{isMobile?"Tap to Upload":"Drop Files"}</div><div style={{fontSize:'0.7rem', opacity:0.5}}>Auto-sorted by AI</div></>}</div>}
-            <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(250px, 1fr))', gap:15}}>
-              {courses.map(c => <div key={c.id} className="interactive-card" onClick={()=>{setActiveCourseId(c.id); setView('course-detail')}} style={courseCardStyle}><span style={codeBadgeStyle}>{c.code}</span><h3 style={{margin:'10px 0'}}>{c.name}</h3><div style={{fontSize:'0.8rem', opacity:0.5}}>{c.modules.length} Modules • {Object.values(c.files).flat().length} Files</div></div>)}
+            {!showAddModal && <div onClick={() => sortFileInputRef.current.click()} style={{ ...globalDropStyle, borderColor: dragActive ? 'var(--accent-primary)' : 'var(--glass)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 30 }} onDragOver={e => { e.preventDefault(); setDragActive(true) }} onDragLeave={() => setDragActive(false)} onDrop={e => { e.preventDefault(); setDragActive(false); handleSmartDrop(e.dataTransfer.files) }}>{isProcessing ? <div style={{ display: 'flex', gap: 10 }}><Loader className="spin-anim" />{statusMsg}</div> : <><UploadCloud size={32} style={{ marginBottom: 10, opacity: 0.5 }} /><div>{isMobile ? "Tap to Upload" : "Drop Files"}</div><div style={{ fontSize: '0.7rem', opacity: 0.5 }}>Auto-sorted by AI</div></>}</div>}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(250px, 1fr))', gap: 15 }}>
+              {courses.map(c => <div key={c.id} className="interactive-card" onClick={() => { setActiveCourseId(c.id); setView('course-detail') }} style={courseCardStyle}><span style={codeBadgeStyle}>{c.code}</span><h3 style={{ margin: '10px 0' }}>{c.name}</h3><div style={{ fontSize: '0.8rem', opacity: 0.5 }}>{c.modules.length} Modules • {Object.values(c.files).flat().length} Files</div></div>)}
             </div>
           </>
         )}
@@ -997,18 +997,18 @@ export default function App() {
           <>
             {/* MODULE LIST */}
             {activeCourse.modules.map((mod, i) => (
-              <div key={i} style={{marginBottom:10, border:'1px solid #ffffff11', borderRadius:8}}>
-                <div style={{padding:15, background:'#ffffff05', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                  <div onClick={()=>{setExpandedFileModuleIndex(i===expandedFileModuleIndex?null:i)}} style={{cursor:'pointer', flex:1}}><strong>{mod.title}</strong></div>
-                  <div style={{display:'flex', gap: 5}}>
-                    <button onClick={()=>openModuleNotes(mod.title)} style={{...btnStyle, padding:'4px 8px', fontSize:'0.7rem', color:'white'}}><FileText size={14}/> Notes</button>
-                    <button onClick={()=>handleGenerateQuiz(mod)} style={{...btnStyle, padding:'4px 8px', fontSize:'0.7rem', color:'#f472b6'}}><Brain size={14}/> Quiz</button>
+              <div key={i} style={{ marginBottom: 10, border: '1px solid var(--glass)', borderRadius: 8 }}>
+                <div style={{ padding: 15, background: 'var(--glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div onClick={() => { setExpandedFileModuleIndex(i === expandedFileModuleIndex ? null : i) }} style={{ cursor: 'pointer', flex: 1 }}><strong>{mod.title}</strong></div>
+                  <div style={{ display: 'flex', gap: 5 }}>
+                    <button onClick={() => openModuleNotes(mod.title)} style={{ ...btnStyle, padding: '4px 8px', fontSize: '0.7rem', color: 'var(--text-primary)' }}><FileText size={14} /> Notes</button>
+                    <button onClick={() => handleGenerateQuiz(mod)} style={{ ...btnStyle, padding: '4px 8px', fontSize: '0.7rem', color: 'var(--accent-primary)' }}><Brain size={14} /> Quiz</button>
                   </div>
                 </div>
-                {expandedFileModuleIndex===i && <div style={{padding:15}}>{activeCourse.files[mod.title]?.length===0 ? <span style={{opacity:0.3, fontSize:'0.8rem'}}>No files</span> : activeCourse.files[mod.title]?.map(f=><div key={f.id} style={{padding:'10px', display:'flex', justifyContent:'space-between', borderBottom:'1px solid #ffffff11'}}><a href={f.url} target="_blank" style={{color:'white'}}>{f.title}</a><Trash2 size={14} onClick={()=>handleDeleteFile(activeCourseId, mod.title, f.id)} style={{cursor:'pointer', opacity:0.5}}/></div>)}</div>}
+                {expandedFileModuleIndex === i && <div style={{ padding: 15 }}>{activeCourse.files[mod.title]?.length === 0 ? <span style={{ opacity: 0.3, fontSize: '0.8rem' }}>No files</span> : activeCourse.files[mod.title]?.map(f => <div key={f.id} style={{ padding: '10px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--glass)' }}><a href={f.url} target="_blank" style={{ color: 'var(--text-primary)' }}>{f.title}</a><Trash2 size={14} onClick={() => handleDeleteFile(activeCourseId, mod.title, f.id)} style={{ cursor: 'pointer', opacity: 0.5 }} /></div>)}</div>}
               </div>
             ))}
-            <div style={{height:150}}></div>
+            <div style={{ height: 150 }}></div>
           </>
         )}
       </div>
@@ -1034,7 +1034,7 @@ const toastStyle = {
   right: '24px',
   padding: '14px 22px',
   borderRadius: '12px',
-  color: 'white',
+  color: 'var(--bg-primary)',
   display: 'flex',
   alignItems: 'center',
   gap: '10px',
@@ -1065,11 +1065,11 @@ const btnStyleCompact = {
 };
 
 const primaryBtnStyle = {
-  background: 'var(--button-gradient)',
+  background: 'var(--btn-primary-bg)',
   border: 'none',
   borderRadius: '12px',
   padding: '12px 20px',
-  color: '#fff',
+  color: 'var(--btn-primary-text)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -1082,7 +1082,7 @@ const primaryBtnStyle = {
 
 const secondaryBtnStyle = {
   background: 'var(--bg-secondary)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid var(--glass)',
   borderRadius: '12px',
   padding: '10px 14px',
   color: 'var(--text-primary)',
@@ -1095,19 +1095,19 @@ const secondaryBtnStyle = {
 
 const inputStyle = {
   background: 'var(--bg-secondary)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid var(--glass)',
   padding: '14px',
   borderRadius: '12px',
   color: 'var(--text-primary)',
   outline: 'none',
   boxSizing: 'border-box',
-  width:'100%',
-  marginBottom:12,
+  width: '100%',
+  marginBottom: 12,
   fontSize: '0.95rem'
 };
 
 const dropZoneStyle = {
-  border: '2px dashed rgba(255,255,255,0.15)',
+  border: '2px dashed var(--glass)',
   borderRadius: '16px',
   padding: '24px',
   display: 'flex',
@@ -1118,7 +1118,7 @@ const dropZoneStyle = {
 };
 
 const globalDropStyle = {
-  border: '2px dashed rgba(255,255,255,0.15)',
+  border: '2px dashed var(--glass)',
   borderRadius: '16px',
   padding: '30px',
   display: 'flex',
@@ -1135,7 +1135,7 @@ const courseCardStyle = {
   borderRadius: '18px',
   padding: '24px',
   cursor: 'pointer',
-  border: '1px solid rgba(255,255,255,0.05)',
+  border: '1px solid var(--glass)',
   boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
   transition: 'all 0.25s ease'
 };
@@ -1144,13 +1144,13 @@ const goalCardStyle = {
   background: 'var(--bg-secondary)',
   borderRadius: '16px',
   padding: '22px',
-  border: '1px solid rgba(255,255,255,0.05)',
+  border: '1px solid var(--glass)',
   boxShadow: '0 10px 25px rgba(0,0,0,0.25)'
 };
 
 const codeBadgeStyle = {
   background: 'var(--accent-primary)',
-  color: 'white',
+  color: 'var(--bg-primary)',
   padding: '5px 10px',
   borderRadius: '8px',
   fontSize: '0.75rem',
@@ -1177,7 +1177,7 @@ const modalContentStyle = (isMobile) => ({
   maxWidth: '450px',
   borderRadius: '20px',
   padding: '28px',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid var(--glass)',
   color: 'var(--text-primary)',
   boxShadow: '0 30px 60px rgba(0,0,0,0.5)'
 });

@@ -62,8 +62,8 @@ export default function Widget({
                 style={{
                     width: '100%',
                     height: '100%',
-                    background: actualIsTransparent ? 'transparent' : (actualHideHeader ? 'rgba(20,20,30,0.5)' : 'var(--bg-secondary)'),
-                    border: actualIsTransparent ? 'none' : (actualHideHeader ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(255,255,255,0.1)'),
+                    background: actualIsTransparent ? 'transparent' : (actualHideHeader ? 'var(--overlay-bg)' : 'var(--bg-secondary)'),
+                    border: actualIsTransparent ? 'none' : '1px solid var(--glass)',
                     borderRadius: 'var(--radius-lg, 16px)',
                     boxShadow: (actualIsTransparent || actualHideHeader) ? 'none' : '0 16px 48px rgba(0,0,0,0.4)',
                     display: 'flex',
@@ -79,12 +79,12 @@ export default function Widget({
                         className="widget-drag-handle"
                         style={{
                             padding: '12px 16px',
-                            borderBottom: '1px solid rgba(255,255,255,0.08)',
+                            borderBottom: '1px solid var(--glass)',
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             cursor: 'grab',
-                            background: 'rgba(255,255,255,0.03)',
+                            background: 'var(--bg-secondary)',
                         }}
                         onPointerDown={(e) => e.currentTarget.style.cursor = 'grabbing'}
                         onPointerUp={(e) => e.currentTarget.style.cursor = 'grab'}
@@ -126,7 +126,7 @@ export default function Widget({
                                 <ArrowLeft size={16} />
                             </button>
                         )}
-                        <GripHorizontal size={16} style={{ color: 'rgba(255,255,255,0.4)', cursor: 'grab' }} />
+                        <GripHorizontal size={16} style={{ color: 'var(--text-secondary)', cursor: 'grab' }} />
                         <button
                             onClick={(e) => { e.stopPropagation(); onClose(); }}
                             onPointerDown={(e) => e.stopPropagation()} // prevent drag when closing
@@ -174,11 +174,11 @@ const headlessControlsStyle = (isHovered) => ({
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    background: 'rgba(0,0,0,0.6)',
+    background: 'var(--overlay-bg)',
     padding: '6px 10px',
     borderRadius: '20px',
     backdropFilter: 'blur(8px)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    border: '1px solid var(--glass)',
     opacity: isHovered ? 1 : 0,
     pointerEvents: isHovered ? 'auto' : 'none',
     transition: 'opacity 0.2s ease-in-out',
@@ -187,7 +187,7 @@ const headlessControlsStyle = (isHovered) => ({
 const headlessCloseBtn = {
     background: 'none',
     border: 'none',
-    color: 'white',
+    color: 'var(--text-primary)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',

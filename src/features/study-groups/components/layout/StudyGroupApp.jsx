@@ -17,17 +17,17 @@ export const StudyGroupApp = () => {
             <main className="flex-1 max-w-4xl mx-auto p-4 lg:p-8 overflow-y-auto custom-scrollbar">
                 {/* Header */}
                 <header className="flex flex-wrap lg:flex-nowrap items-center justify-between mb-8 gap-4">
-                    <h2 className="text-3xl font-bold text-white">Study Group Feed</h2>
+                    <h2 className="text-3xl font-bold text-[var(--text-primary)]">Study Group Feed</h2>
                     <div className="flex items-center gap-4">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} />
                             <input
                                 type="text"
                                 placeholder="Search groups..."
-                                className="bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm text-slate-200 focus:outline-none focus:border-[var(--neon-purple)]/50 w-48 lg:w-64 transition-all"
+                                className="bg-[var(--glass)] border border-[var(--glass)] rounded-full py-2 pl-10 pr-4 text-sm text-[var(--text-secondary)] focus:outline-none focus:border-[var(--neon-purple)]/50 w-48 lg:w-64 transition-all"
                             />
                         </div>
-                        <button className="p-2 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all relative">
+                        <button className="p-2 rounded-full bg-[var(--glass)] border border-[var(--glass)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all relative">
                             <Bell size={20} />
                             <span className="absolute top-2 right-2 w-2 h-2 bg-[var(--neon-pink)] rounded-full border border-black/20"></span>
                         </button>
@@ -55,7 +55,7 @@ export const StudyGroupApp = () => {
                                 <img
                                     src="https://picsum.photos/seed/book/800/400"
                                     alt="Post content"
-                                    className="rounded-xl w-full h-64 object-cover border border-white/10"
+                                    className="rounded-xl w-full h-64 object-cover border border-[var(--glass)]"
                                     referrerPolicy="no-referrer"
                                 />
                             </div>
@@ -69,7 +69,7 @@ export const StudyGroupApp = () => {
                         content={
                             <div className="space-y-4">
                                 <p>Just finished this Python script for automated data cleaning. Thoughts?</p>
-                                <div className="bg-black/40 rounded-xl p-4 font-mono text-sm border border-white/5 overflow-x-auto">
+                                <div className="bg-[var(--overlay-bg)] rounded-xl p-4 font-mono text-sm border border-[var(--glass)] overflow-x-auto">
                                     <pre className="text-[var(--neon-blue)]">
                                         {`def clean_data(df):
     # Remove duplicates
@@ -92,15 +92,15 @@ export const StudyGroupApp = () => {
                         comments={31}
                         content={
                             <div className="space-y-2">
-                                <h5 className="text-xl font-bold text-white">Pomodoro Timer</h5>
+                                <h5 className="text-xl font-bold text-[var(--text-primary)]">Pomodoro Timer</h5>
                                 <a href="#" className="text-[var(--neon-blue)] hover:underline block text-sm">https://www.youtube.com/watch?v=Pomodoro-Timer</a>
-                                <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-4">
+                                <div className="p-4 rounded-xl bg-[var(--glass)] border border-[var(--glass)] flex items-center gap-4">
                                     <div className="w-12 h-12 rounded bg-red-500/20 flex items-center justify-center text-red-500 shrink-0">
                                         <span className="font-bold">YT</span>
                                     </div>
                                     <div className="overflow-hidden">
-                                        <p className="text-sm font-medium text-white truncate">Study with Me: 2 Hour Pomodoro</p>
-                                        <p className="text-xs text-slate-500 truncate">YouTube • 1.2M views</p>
+                                        <p className="text-sm font-medium text-[var(--text-primary)] truncate">Study with Me: 2 Hour Pomodoro</p>
+                                        <p className="text-xs text-[var(--text-secondary)] truncate">YouTube • 1.2M views</p>
                                     </div>
                                 </div>
                             </div>

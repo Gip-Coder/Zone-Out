@@ -221,7 +221,7 @@ const titleStyle = { fontSize: "28px", fontWeight: 700, marginBottom: 8 };
 const subStyle = { color: "var(--text-secondary)", marginBottom: 24 };
 const cardStyle = {
   background: "var(--bg-secondary)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid var(--glass)",
   borderRadius: "var(--radius-lg)",
   padding: 24,
   marginBottom: 32,
@@ -232,17 +232,17 @@ const selectStyle = {
   width: "100%",
   padding: 12,
   borderRadius: 12,
-  border: "1px solid rgba(255,255,255,0.1)",
-  background: "rgba(0,0,0,0.2)",
+  border: "1px solid var(--glass)",
+  background: "var(--overlay-bg)",
   color: "var(--text-primary)",
   fontSize: "1rem",
 };
 const btnPrimary = {
-  background: "var(--button-gradient)",
+  background: "var(--btn-primary-bg)",
   border: "none",
   borderRadius: 12,
   padding: "12px 20px",
-  color: "#fff",
+  color: "var(--btn-primary-text)",
   cursor: "pointer",
   display: "inline-flex",
   alignItems: "center",
@@ -253,7 +253,7 @@ const deckWrap = { marginTop: 24, textAlign: "center" };
 const deckHeader = { display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 20 };
 const navBtn = {
   background: "var(--bg-secondary)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  border: "1px solid var(--glass)",
   borderRadius: 10,
   padding: 10,
   color: "var(--text-primary)",
@@ -276,7 +276,7 @@ const flashcardFace = {
   backfaceVisibility: "hidden",
   WebkitBackfaceVisibility: "hidden",
   background: "var(--bg-secondary)",
-  border: "1px solid rgba(255,255,255,0.12)",
+  border: "1px solid var(--glass)",
   borderRadius: 16,
   padding: 28,
   minHeight: 180,

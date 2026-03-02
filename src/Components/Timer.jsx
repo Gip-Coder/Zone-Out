@@ -150,7 +150,7 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
             cx="160"
             cy="160"
             r={radius}
-            stroke="rgba(255,255,255,0.08)"
+            stroke="var(--glass)"
             strokeWidth="14"
             fill="transparent"
           />
@@ -206,7 +206,7 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
                 onClick={resetTimer}
                 style={{
                   background: "var(--bg-secondary)",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  border: "1px solid var(--glass)",
                   borderRadius: "50%",
                   width: 55,
                   height: 55,
@@ -271,8 +271,8 @@ const manualInputStyle = {
   width: 55,
   padding: '8px',
   borderRadius: '12px',
-  border: "1px solid rgba(255,255,255,0.1)",
-  background: "rgba(0,0,0,0.2)",
+  border: "1px solid var(--glass)",
+  background: "var(--overlay-bg)",
   color: "var(--text-primary)",
   textAlign: "center",
   fontSize: '16px',
@@ -285,8 +285,8 @@ const setBtnStyle = {
   padding: "8px 16px",
   borderRadius: '12px',
   border: "none",
-  background: "var(--button-gradient)",
-  color: "#fff",
+  background: "var(--btn-primary-bg)",
+  color: "var(--btn-primary-text)",
   cursor: "pointer",
   fontWeight: '600',
   boxShadow: '0 4px 15px rgba(124,58,237,0.3)',

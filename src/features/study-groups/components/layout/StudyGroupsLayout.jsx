@@ -12,7 +12,7 @@ const StudyGroupsLayout = ({ sidebar, feed, rightPanel }) => {
             <div className="w-full max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-[64px_1fr] lg:grid-cols-[240px_1fr] xl:grid-cols-[240px_1fr_320px] gap-6 p-4 h-full relative">
 
                 {/* 1. Sidebar Column */}
-                <aside className="hidden md:flex flex-col h-full bg-[#14151a]/80 backdrop-blur-md border border-white/5 rounded-2xl overflow-hidden self-start sticky top-4">
+                <aside className="hidden md:flex flex-col h-full bg-[#14151a]/80 backdrop-blur-md border border-[var(--glass)] rounded-2xl overflow-hidden self-start sticky top-4">
                     {sidebar}
                 </aside>
 

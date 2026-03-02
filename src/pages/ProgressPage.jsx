@@ -161,14 +161,14 @@ const rangeStyle = { marginBottom: 20, display: "flex", alignItems: "center", ga
 const selectStyle = {
   padding: "8px 12px",
   borderRadius: 10,
-  border: "1px solid rgba(255,255,255,0.1)",
+  border: "1px solid var(--glass)",
   background: "var(--bg-secondary)",
   color: "var(--text-primary)",
 };
 const centerStyle = { display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 48 };
 const cardStyle = {
   background: "var(--bg-secondary)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid var(--glass)",
   borderRadius: "var(--radius-lg)",
   padding: 24,
   marginBottom: 24,
@@ -180,6 +180,6 @@ const cardTitle = { margin: "0 0 16px", fontSize: "1.1rem" };
 const barChartStyle = { display: "flex", flexDirection: "column", gap: 10 };
 const barRow = { display: "flex", alignItems: "center", gap: 12 };
 const barLabel = { width: 64, fontSize: "0.85rem", color: "var(--text-secondary)" };
-const barTrack = { flex: 1, height: 20, background: "rgba(255,255,255,0.06)", borderRadius: 8, overflow: "hidden" };
+const barTrack = { flex: 1, height: 20, background: "var(--glass)", borderRadius: 8, overflow: "hidden" };
 const barFill = { height: "100%", background: "var(--button-gradient)", borderRadius: 8, transition: "width 0.3s ease" };
 const barValue = { width: 40, textAlign: "right", fontSize: "0.85rem" };

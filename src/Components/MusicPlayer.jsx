@@ -174,9 +174,9 @@ export default function MusicPlayer({ isPlaying, setIsPlaying }) {
       </div>
 
       {!isPlaying && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+        <div style={{ borderTop: '1px solid var(--glass)', paddingTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center' }}>Want to listen to your own music?</p>
-          <button onClick={() => setShowSignIn(true)} style={{ ...styles.connectBtn, background: 'var(--bg-primary)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)' }}>
+          <button onClick={() => setShowSignIn(true)} style={{ ...styles.connectBtn, background: 'var(--bg-primary)', border: '1px solid var(--glass)', color: 'var(--text-primary)' }}>
             Sign in to Provider
           </button>
         </div>
@@ -247,7 +247,7 @@ function YouTubePlaylistFetcher({ token }) {
             borderRadius: '8px',
             padding: '8px',
             cursor: 'pointer',
-            border: '1px solid rgba(255,255,255,0.05)'
+            border: '1px solid var(--glass)'
           }}
         >
           <img src={p.snippet.thumbnails?.default?.url} alt={p.snippet.title} style={{ width: '100%', borderRadius: '4px', marginBottom: '8px' }} />
@@ -280,7 +280,7 @@ const styles = {
   },
   toggleBtn: {
     background: 'var(--bg-primary)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid var(--glass)',
     borderRadius: '10px',
     padding: '6px 12px',
     cursor: 'pointer',
@@ -315,7 +315,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    border: '1px solid rgba(255,255,255,0.03)',
+    border: '1px solid var(--glass)',
     boxSizing: 'border-box',
     width: '100%'
   },
@@ -353,7 +353,7 @@ const styles = {
     padding: '10px 20px',
     borderRadius: '24px',
     border: 'none',
-    color: '#fff',
+    color: 'var(--bg-primary)',
     fontWeight: '600',
     cursor: 'pointer',
     boxShadow: '0 4px 15px rgba(0,0,0,0.2)'

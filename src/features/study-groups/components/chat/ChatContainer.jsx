@@ -8,7 +8,7 @@ const MessageGroup = React.memo(({ messages, isMe, author }) => {
         <div className={`flex flex-col mb-6 ${isMe ? 'items-end' : 'items-start'}`}>
             {!isMe && (
                 <div className="flex items-center gap-2 mb-1.5 ml-1">
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] text-white font-bold shadow-sm shadow-indigo-500/20">
+                    <div className="w-5 h-5 rounded-full btn-primary flex items-center justify-center text-[10px] text-[var(--text-primary)] font-bold shadow-sm shadow-indigo-500/20">
                         {author?.name?.[0] || 'U'}
                     </div>
                     <span className="text-xs font-medium text-gray-400">{author?.name || 'User'}</span>
@@ -26,7 +26,7 @@ const MessageGroup = React.memo(({ messages, isMe, author }) => {
                     <div
                         key={msg.id}
                         className={`group relative max-w-[75%] px-4 py-2.5 mb-1 text-[15px] leading-relaxed shadow-sm transition-all duration-200 ${isMe
-                            ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white hover:shadow-indigo-500/20'
+                            ? 'btn-primary text-[var(--text-primary)] hover:shadow-indigo-500/20'
                             : 'bg-[#1c1e26] text-gray-100 hover:bg-[#23252f] border border-gray-800/60 shadow-black/20'
                             }`}
                         style={{
@@ -111,12 +111,12 @@ export const ChatContainer = ({ currentUser }) => {
             {/* Chat header */}
             <div className="glass-card mb-6 h-16 flex items-center px-6 z-10 shrink-0">
                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[var(--neon-blue)] to-[var(--neon-purple)] flex items-center justify-center font-bold text-white shadow-lg neon-glow-purple">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[var(--neon-blue)] to-[var(--neon-purple)] flex items-center justify-center font-bold text-[var(--text-primary)] shadow-lg neon-glow-purple">
                         #
                     </div>
                     <div>
-                        <h2 className="font-semibold text-white text-lg leading-tight">Live Discussion</h2>
-                        <p className="text-xs text-slate-400 font-medium tracking-wide">{group?.members?.length || 42} <span className="text-slate-500">members online</span></p>
+                        <h2 className="font-semibold text-[var(--text-primary)] text-lg leading-tight">Live Discussion</h2>
+                        <p className="text-xs text-[var(--text-secondary)] font-medium tracking-wide">{group?.members?.length || 42} <span className="text-[var(--text-secondary)]">members online</span></p>
                     </div>
                 </div>
             </div>
@@ -124,13 +124,13 @@ export const ChatContainer = ({ currentUser }) => {
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto px-2 py-4 scroll-smooth z-10 custom-scrollbar glass-card mb-6 flex flex-col" ref={scrollRef}>
                 {messages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full text-slate-400 animate-fade-in-up flex-1">
-                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4 border border-white/10 shadow-inner">
+                    <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] animate-fade-in-up flex-1">
+                        <div className="w-20 h-20 bg-[var(--glass)] rounded-full flex items-center justify-center mb-4 border border-[var(--glass)] shadow-inner">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-10 h-10 text-[var(--neon-purple)] opacity-50">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
                             </svg>
                         </div>
-                        <h3 className="text-white font-medium text-lg mb-1">Start the Conversation</h3>
+                        <h3 className="text-[var(--text-primary)] font-medium text-lg mb-1">Start the Conversation</h3>
                         <p className="text-sm">Be the first to say hello to the group!</p>
                     </div>
                 )}

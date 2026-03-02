@@ -46,7 +46,7 @@ export const SidebarPresence = () => {
                         return (
                             <div key={memberId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer group">
                                 <div className="relative">
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-xs font-bold text-white shadow-sm ring-1 ring-white/10 group-hover:ring-indigo-500 transition-all">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-xs font-bold text-[var(--text-primary)] shadow-sm ring-1 ring-white/10 group-hover:ring-indigo-500 transition-all">
                                         {name[8]} {/* Initial letter mock */}
                                     </div>
                                     <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#14151a] ${status.color}`} />

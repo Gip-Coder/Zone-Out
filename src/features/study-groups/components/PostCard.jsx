@@ -44,42 +44,42 @@ export const PostCard = memo(({ thread, currentUser }) => {
         <div className="glass-card p-6 mb-6 glass-card-hover">
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full border-2 border-[var(--neon-purple)]/30 bg-gradient-to-tr from-[var(--neon-blue)] to-[var(--neon-purple)] text-white font-bold flex items-center justify-center shrink-0 object-cover">
+                    <div className="w-12 h-12 rounded-full border-2 border-[var(--neon-purple)]/30 btn-primary font-bold flex items-center justify-center shrink-0 object-cover">
                         {thread.authorName?.[0] || 'U'}
                     </div>
                     <div>
-                        <h4 className="font-semibold text-white">{thread.authorName || 'Anonymous'}</h4>
-                        <p className="text-xs text-slate-500">{timeAgo}</p>
+                        <h4 className="font-semibold text-[var(--text-primary)]">{thread.authorName || 'Anonymous'}</h4>
+                        <p className="text-xs text-[var(--text-secondary)]">{timeAgo}</p>
                     </div>
                 </div>
-                <button className="text-slate-500 hover:text-white transition-colors">
+                <button className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <MoreHorizontal size={20} />
                 </button>
             </div>
 
-            <div className="text-slate-300 mb-6 leading-relaxed whitespace-pre-wrap">
+            <div className="text-[var(--text-secondary)] mb-6 leading-relaxed whitespace-pre-wrap">
                 {thread.body}
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between pt-4 border-t border-[var(--glass)]">
                 <div className="flex gap-6">
                     <button
                         onClick={handleLike}
-                        className={`flex items-center gap-2 transition-colors group ${isUpvoted ? 'text-[var(--neon-pink)]' : 'text-slate-400 hover:text-[var(--neon-pink)]'}`}
+                        className={`flex items-center gap-2 transition-colors group ${isUpvoted ? 'text-[var(--neon-pink)]' : 'text-[var(--text-secondary)] hover:text-[var(--neon-pink)]'}`}
                     >
                         <Heart size={18} className={isUpvoted ? "fill-[var(--neon-pink)]" : "group-hover:fill-[var(--neon-pink)]"} />
                         <span className="text-sm font-medium">{upvoteCount}</span>
                     </button>
-                    <button className="flex items-center gap-2 text-slate-400 hover:text-[var(--neon-blue)] transition-colors">
+                    <button className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--neon-blue)] transition-colors">
                         <MessageCircle size={18} />
                         <span className="text-sm font-medium">{thread.commentsCount || 0}</span>
                     </button>
-                    <button className="flex items-center gap-2 text-slate-400 hover:text-[var(--neon-purple)] transition-colors hidden sm:flex">
+                    <button className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--neon-purple)] transition-colors hidden sm:flex">
                         <Share2 size={18} />
                         <span className="text-sm font-medium">Share</span>
                     </button>
                 </div>
-                <button className="text-slate-400 hover:text-white transition-colors">
+                <button className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Bookmark size={18} />
                 </button>
             </div>

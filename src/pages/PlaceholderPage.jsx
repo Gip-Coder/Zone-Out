@@ -23,7 +23,7 @@ const titleStyle = { fontSize: '28px', fontWeight: '700', marginBottom: '8px' };
 const subStyle = { color: 'var(--text-secondary)', marginBottom: '24px' };
 const boxStyle = {
   background: 'var(--bg-secondary)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid var(--glass)',
   borderRadius: 'var(--radius-lg)',
   padding: '32px',
 };

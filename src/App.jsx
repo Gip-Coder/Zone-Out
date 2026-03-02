@@ -7,6 +7,7 @@ import StudyGoals from './Components/StudyGoals';
 import NotesSection from './Components/NotesSection';
 import Auth from './Components/Auth';
 import Header from './Components/Header';
+import Layout from './Components/Layout';
 import { Bot, Send, X, Music, Timer as TimerIcon } from 'lucide-react';
 import { motion } from "framer-motion";
 import { Brain, Chatbot } from './agent';
@@ -19,6 +20,7 @@ import PlaceholderPage from './pages/PlaceholderPage';
 import FlashcardsPage from './pages/FlashcardsPage';
 import ProgressPage from './pages/ProgressPage';
 import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
 import GroupDashboard from './features/study-groups/pages/GroupDashboard';
 
 
@@ -205,27 +207,26 @@ export default function App() {
   return (
     <motion.div
       className="dashboard-container"
-      style={appLayout}
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
-      <Header onLogout={handleLogout} user={user} />
-
-      <main style={mainContentStyle}>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/timeline" element={<TimelinePage goals={goals} setGoals={setGoals} />} />
-          <Route path="/course-vault" element={<CourseVaultPage courses={courses} setCourses={setCourses} activeCourseId={activeCourseId} setActiveCourseId={setActiveCourseId} />} />
-          <Route path="/ai" element={<AIPage />} />
-          <Route path="/flashcards" element={<FlashcardsPage />} />
-          <Route path="/progress" element={<ProgressPage />} />
-          <Route path="/study-groups" element={<GroupDashboard />} />
-          <Route path="/resources" element={<PlaceholderPage title="Resources" />} />
-          <Route path="/settings" element={<PlaceholderPage title="Settings" />} />
-          <Route path="/profile" element={<ProfilePage />} />
-        </Routes>
-      </main>
+      <Layout user={user} onLogout={handleLogout}>
+        <div className="page-container">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/timeline" element={<TimelinePage goals={goals} setGoals={setGoals} />} />
+            <Route path="/course-vault" element={<CourseVaultPage courses={courses} setCourses={setCourses} activeCourseId={activeCourseId} setActiveCourseId={setActiveCourseId} />} />
+            <Route path="/ai" element={<AIPage />} />
+            <Route path="/flashcards" element={<FlashcardsPage />} />
+            <Route path="/progress" element={<ProgressPage />} />
+            <Route path="/study-groups" element={<GroupDashboard />} />
+            <Route path="/resources" element={<PlaceholderPage title="Resources" />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+          </Routes>
+        </div>
+      </Layout>
 
       {/* Chatbot: general student queries (Q&A only) */}
       <Chatbot brain={brain} placeholder="Ask a study question..." />
@@ -337,25 +338,6 @@ export default function App() {
 // STYLES
 // =============================
 
-const mainContentStyle = {
-  flex: 1,
-  overflowY: 'auto',
-  padding: '24px 36px 48px',
-};
-
-const appLayout = {
-  display: 'flex',
-  flexDirection: 'column',
-  minHeight: '100vh',
-  background: `
-    radial-gradient(circle at 20% 20%, var(--accent-tertiary)15, transparent 40%),
-    radial-gradient(circle at 80% 80%, var(--accent-secondary)15, transparent 40%),
-    var(--bg-primary)
-  `,
-  color: 'var(--text-primary)',
-  position: 'relative',
-};
-
 const leftColumn = {
   display: 'flex',
   flexDirection: 'column',
@@ -376,15 +358,15 @@ const tabSwitcher = {
   background: 'var(--bg-secondary)',
   borderRadius: 'var(--radius-lg)',
   padding: '6px',
-  border: '1px solid rgba(255,255,255,0.06)',
+  border: '1px solid var(--glass)',
   boxShadow: '0 8px 30px rgba(0,0,0,0.25)'
 };
 
 const activeTabStyle = {
   flex: 1,
   border: 'none',
-  background: 'var(--button-gradient)',
-  color: '#fff',
+  background: 'var(--btn-primary-bg)',
+  color: 'var(--btn-primary-text)',
   padding: '12px',
   cursor: 'pointer',
   display: 'flex',
@@ -410,9 +392,9 @@ const fabStyle = {
   width: '64px',
   height: '64px',
   borderRadius: '50%',
-  background: 'var(--button-gradient)',
+  background: 'var(--btn-primary-bg)',
   border: 'none',
-  color: 'white',
+  color: 'var(--btn-primary-text)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -430,9 +412,9 @@ const chatOverlayStyle = {
   maxWidth: 'calc(100vw - 48px)',
   height: '420px',
   maxHeight: '60vh',
-  background: 'var(--bg-secondary, rgba(28,28,36,0.98))',
+  background: 'var(--bg-secondary)',
   borderRadius: 'var(--radius-lg, 16px)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid var(--glass)',
   boxShadow: '0 16px 48px rgba(0,0,0,0.4)',
   display: 'flex',
   flexDirection: 'column',
@@ -442,7 +424,7 @@ const chatOverlayStyle = {
 
 const buddyHeader = {
   padding: '12px 16px',
-  borderBottom: '1px solid rgba(255,255,255,0.08)',
+  borderBottom: '1px solid var(--glass)',
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
@@ -470,8 +452,8 @@ const userMsgStyle = {
 
 const buddyMsgStyle = {
   alignSelf: 'flex-start',
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.1)',
+  background: 'var(--glass)',
+  border: '1px solid var(--glass)',
   padding: '10px 12px',
   borderRadius: '12px',
   maxWidth: '85%'
@@ -479,15 +461,15 @@ const buddyMsgStyle = {
 
 const inputArea = {
   padding: '12px',
-  borderTop: '1px solid rgba(255,255,255,0.06)',
+  borderTop: '1px solid var(--glass)',
   display: 'flex',
   gap: '8px'
 };
 
 const chatInputStyle = {
   flex: 1,
-  background: 'rgba(0,0,0,0.25)',
-  border: '1px solid rgba(255,255,255,0.12)',
+  background: 'var(--glass)',
+  border: '1px solid var(--glass)',
   color: 'var(--text-primary)',
   borderRadius: 'var(--radius-md, 8px)',
   padding: '10px 12px',
@@ -496,11 +478,11 @@ const chatInputStyle = {
 };
 
 const sendBtn = {
-  background: 'var(--button-gradient)',
+  background: 'var(--btn-primary-bg)',
   border: 'none',
   borderRadius: 'var(--radius-md, 8px)',
   padding: '10px 14px',
-  color: 'white',
+  color: 'var(--btn-primary-text)',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
@@ -517,11 +499,11 @@ const widgetToggleGroupStyle = {
 };
 
 const widgetToggleBtnStyle = (isActive) => ({
-  background: isActive ? 'var(--button-gradient)' : 'var(--bg-secondary)',
-  border: isActive ? 'none' : '1px solid rgba(255,255,255,0.1)',
+  background: isActive ? 'var(--btn-primary-bg)' : 'var(--bg-secondary)',
+  border: isActive ? 'none' : '1px solid var(--glass)',
   borderRadius: '24px',
   padding: '10px 16px',
-  color: isActive ? 'white' : 'var(--text-primary)',
+  color: isActive ? 'var(--btn-primary-text)' : 'var(--text-primary)',
   display: 'flex',
   alignItems: 'center',
   gap: '8px',

@@ -136,14 +136,15 @@ export default function StudyGoals() {
       flex: 1,
       padding: '14px',
       borderRadius: '12px',
-      border: '1px solid rgba(255,255,255,0.08)',
+      border: '1px solid var(--glass)',
       background: 'var(--bg-secondary)',
       color: 'var(--text-primary)',
       fontSize: '0.95rem'
     },
 
     addBtn: {
-      background: 'var(--button-gradient)',
+      background: 'var(--btn-primary-bg)',
+      color: 'var(--btn-primary-text)',
       border: 'none',
       borderRadius: '12px',
       width: '48px',
@@ -159,7 +160,7 @@ export default function StudyGoals() {
       padding: '22px',
       borderRadius: 'var(--radius-lg)',
       marginBottom: '20px',
-      border: '1px solid rgba(255,255,255,0.05)',
+      border: '1px solid var(--glass)',
       transition: '0.25s ease',
       boxShadow: '0 10px 30px rgba(0,0,0,0.25)'
     },

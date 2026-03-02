@@ -53,7 +53,7 @@ export default function Auth({ setIsAuthenticated }) {
 
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      ctx.fillStyle = "rgba(168, 85, 247, 0.4)"; // Purple accent for particles
       particles.forEach((p) => {
         p.x += p.dx;
         p.y += p.dy;
@@ -340,7 +340,7 @@ const styles = {
   card: {
     borderRadius: "20px",
     background: "var(--bg-secondary)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid var(--glass)",
     backdropFilter: "blur(12px)",
     boxShadow: "0 20px 50px rgba(0,0,0,0.4)"
   },
@@ -354,7 +354,7 @@ const styles = {
   input: {
     padding: "14px",
     borderRadius: "12px",
-    border: "1px solid rgba(255,255,255,0.1)",
+    border: "1px solid var(--glass)",
     background: "transparent",
     color: "var(--text-primary)",
     fontSize: "0.95rem"
@@ -364,8 +364,8 @@ const styles = {
     padding: "14px",
     borderRadius: "12px",
     border: "none",
-    background: "var(--button-gradient)",
-    color: "#fff",
+    background: "var(--btn-primary-bg)",
+    color: "var(--btn-primary-text)",
     fontWeight: "600",
     cursor: "pointer",
     boxShadow: "0 10px 30px rgba(124,58,237,0.35)"
@@ -376,7 +376,7 @@ const styles = {
     top: "20px",
     right: "20px",
     background: "var(--bg-secondary)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid var(--glass)",
     padding: "10px",
     borderRadius: "50%",
     cursor: "pointer",
@@ -386,7 +386,7 @@ const styles = {
   googleBtn: {
     padding: "12px",
     borderRadius: "12px",
-    border: "1px solid rgba(255,255,255,0.1)",
+    border: "1px solid var(--glass)",
     background: "transparent",
     color: "var(--text-primary)",
     fontWeight: "600",
@@ -407,7 +407,7 @@ const styles = {
   line: {
     flex: 1,
     height: "1px",
-    background: "rgba(255,255,255,0.1)"
+    background: "var(--glass)"
   },
 
   orText: {
