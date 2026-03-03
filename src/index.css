@@ -252,7 +252,7 @@
 
     .page-container {
         flex: 1;
-        overflow-y: auto;
+        overflow-y: visible;
         padding: 24px 36px 48px;
     }
 
