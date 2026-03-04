@@ -1,47 +1,52 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 const MOCK_GROUPS = [
     {
         title: 'Data Science Sprint',
-        stats: '24 members for 75 groups',
+        stats: '24 members',
         image: 'https://picsum.photos/seed/ds/100/100',
     },
     {
         title: 'Cyberpunk Coding',
-        stats: '35 minutes left for 15 sessions',
+        stats: '15 members',
         image: 'https://picsum.photos/seed/cyber/100/100',
     },
     {
         title: 'Neerito Data',
-        stats: '12 active for 75 groups',
+        stats: '12 active',
         image: 'https://picsum.photos/seed/data/100/100',
     },
 ];
 
 const ActiveGroupsCard = () => {
     return (
-        <div className="glass-card p-5">
+        <div className="card">
             <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Active Focus Groups</h3>
-            <div className="space-y-4">
+            <div className="space-y-2">
                 {MOCK_GROUPS.map((group) => (
-                    <div key={group.title} className="flex items-center gap-3 p-2 rounded-xl hover:bg-[var(--glass)] transition-colors cursor-pointer group">
-                        <img
-                            src={group.image}
-                            alt={group.title}
-                            className="w-12 h-12 rounded-lg object-cover border border-[var(--glass)] shrink-0"
-                            referrerPolicy="no-referrer"
-                        />
-                        <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium text-[var(--text-primary)] truncate">{group.title}</h4>
-                            <p className="text-[10px] text-[var(--text-secondary)] truncate">{group.stats}</p>
+                    <div key={group.title} className="flex items-center gap-3 w-full border-b border-[var(--glass)] last:border-b-0 pb-3 mb-1 pt-1">
+                        <div className="relative shrink-0">
+                            <img
+                                src={group.image}
+                                alt={group.title}
+                                className="avatar w-10 h-10 rounded-full border border-[var(--glass)]"
+                                referrerPolicy="no-referrer"
+                                loading="lazy"
+                            />
+                            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--bg-secondary)]"></div>
                         </div>
-                        <ChevronRight size={16} className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors shrink-0" />
+                        <span className="text-sm font-medium text-[var(--text-primary)] truncate max-w-[130px]">{group.title}</span>
+                        <span className="text-xs font-medium text-[var(--text-secondary)] bg-[var(--glass)] px-2.5 py-1 rounded-full whitespace-nowrap">{group.stats}</span>
+                        <div className="flex-1"></div>
+                        <button className="btn btn-primary btn-sm shrink-0 px-4">
+                            Join
+                        </button>
                     </div>
                 ))}
             </div>
-            <button className="w-full mt-4 py-2 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-                View more
+            <button className="btn btn-secondary btn-sm w-full mt-4">
+                Explore all groups
             </button>
         </div>
     );

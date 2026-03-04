@@ -38,6 +38,7 @@ export class Brain {
   _buildControlContext(state) {
     if (!state) return {};
     return {
+      availableWidgets: state.availableWidgets,
       activeTab: state.activeTab,
       view: state.view,
       activeCourse: state.activeCourse

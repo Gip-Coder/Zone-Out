@@ -17,7 +17,6 @@ export const GroupDashboard = ({ groupId = 'MATH101' }) => {
         <StudyGroupProvider groupId={groupId} currentUser={MOCK_CURRENT_USER}>
             <ThreadProvider groupId={groupId} currentUser={MOCK_CURRENT_USER}>
                 <StudyGroupsLayout
-                    sidebar={<Sidebar />}
                     feed={<Feed currentUser={MOCK_CURRENT_USER} />}
                     rightPanel={<RightPanel />}
                 />

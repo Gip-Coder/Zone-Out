@@ -210,6 +210,7 @@
     font-size: 1.25rem;
     font-weight: 700;
     margin-bottom: 8px;
+    color: var(--text-primary);
 }
 
 .dashboard-card-desc {
@@ -314,4 +315,126 @@
         border-top: none;
         padding-top: 0;
     }
+}
+
+/* =========================================================================
+   EDIT MODE
+   ========================================================================= */
+
+.dashboard-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.dashboard-edit-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.dashboard-card.edit-mode {
+    cursor: default;
+}
+
+.dashboard-card.edit-mode:hover {
+    transform: none;
+    background: var(--bg-secondary);
+}
+
+.dashboard-card.dragging {
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+    border-color: var(--card-accent);
+}
+
+.widget-edit-wrapper {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+.widget-controls {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.dashboard-card.edit-mode:hover .widget-controls,
+.dashboard-card.edit-mode .widget-controls:hover {
+    opacity: 1;
+}
+
+.widget-remove-btn {
+    background: var(--accent-ai, #f43f5e);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+}
+
+.widget-remove-btn:hover {
+    transform: scale(1.1);
+}
+
+.widget-drag-handle {
+    background: var(--glass);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    color: var(--text-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.widget-drag-handle:active {
+    cursor: grabbing;
+}
+
+.add-widget-dropdown {
+    width: 100%;
+    text-align: left;
+}
+
+.add-widget-dropdown h4 {
+    margin-bottom: 12px;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.add-widget-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.add-widget-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--glass);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+}
+
+.add-widget-option:hover {
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
 }

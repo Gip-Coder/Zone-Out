@@ -17,6 +17,8 @@ export const buildThinkPrompt = (userInput, appContext) => {
 USER: "${userInput}"
 APP CONTEXT: ${JSON.stringify(appContext || {})}
 
+CRITICAL: If the user requests an action for a widget that is NOT in 'availableWidgets' (such as setting the timer when 'timer' is missing), you MUST NOT dispatch any actions. Instead, respond politely explaining that the requested widget is not currently on their dashboard.
+
 AVAILABLE ACTIONS (return JSON "action" only when user asks to do something):
 1. { "type": "SET_TIMER", "minutes": number }
 2. { "type": "STOP_TIMER" } or { "type": "PAUSE_TIMER" }

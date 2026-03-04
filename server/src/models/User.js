@@ -15,6 +15,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    dashboardLayout: {
+      type: [
+        {
+          id: String,
+          order: Number,
+          size: String
+        }
+      ],
+      default: []
+    }
   },
   { timestamps: true }
 );

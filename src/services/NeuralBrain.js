@@ -13,6 +13,7 @@ export class NeuralBrain {
 
     const context = {
       view: state.view,
+      availableWidgets: state.availableWidgets,
       activeCourse: state.activeCourse
         ? {
           name: state.activeCourse.name,
@@ -32,6 +33,8 @@ You CONTROL the application.
 
 USER: "${userInput}"
 APP_CONTEXT: ${JSON.stringify(context)}
+
+CRITICAL: If the user requests an action for a widget that is NOT in 'availableWidgets' (such as setting the timer when 'timer' is missing), you MUST NOT dispatch any actions. Instead, respond politely explaining that the requested widget is not currently on their dashboard.
 
 AVAILABLE ACTIONS:
 1. { "type": "SET_TIMER", "minutes": number }

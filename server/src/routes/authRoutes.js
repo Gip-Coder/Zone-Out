@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import admin from "../config/firebaseAdmin.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ router.post("/register", async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-    const safeUser = { id: user._id, name: user.name, email: user.email };
+    const safeUser = { id: user._id, name: user.name, email: user.email, dashboardLayout: user.dashboardLayout };
     res.status(201).json({ message: "User registered successfully", token, user: safeUser });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -53,7 +54,7 @@ router.post("/login", async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-    const safeUser = { id: user._id, name: user.name, email: user.email };
+    const safeUser = { id: user._id, name: user.name, email: user.email, dashboardLayout: user.dashboardLayout };
     res.json({ token, user: safeUser });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -94,12 +95,44 @@ router.post("/google", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    const safeUser = { id: user._id, name: user.name, email: user.email, profilePic: picture };
+    const safeUser = { id: user._id, name: user.name, email: user.email, profilePic: picture, dashboardLayout: user.dashboardLayout };
     res.json({ message: "Google Auth successful", token, user: safeUser });
 
   } catch (error) {
     console.error("Google Auth Error:", error);
     res.status(500).json({ error: error?.message || "Failed to authenticate with Google" });
+  }
+});
+
+// UPDATE DASHBOARD LAYOUT
+router.put("/layout", protect, async (req, res) => {
+  try {
+    const { dashboardLayout } = req.body;
+
+    if (!Array.isArray(dashboardLayout)) {
+      return res.status(400).json({ message: "Invalid layout format" });
+    }
+
+    const validWidgetIds = ["timeline", "vault", "timer", "music", "ai"];
+
+    // Validate IDs
+    for (const widget of dashboardLayout) {
+      if (!validWidgetIds.includes(widget.id)) {
+        return res.status(400).json({ message: `Invalid widget ID: ${widget.id}` });
+      }
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user,
+      { dashboardLayout },
+      { new: true }
+    );
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({ dashboardLayout: user.dashboardLayout });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

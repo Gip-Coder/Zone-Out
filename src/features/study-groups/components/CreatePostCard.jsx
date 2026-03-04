@@ -1,46 +1,55 @@
 import React from 'react';
-import { Type, Code, Paperclip, Send } from 'lucide-react';
+import { Image, Code, Link as LinkIcon, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useThreadContext } from '../context/ThreadContext';
 
 const CreatePostCard = () => {
-    const { createThread } = useThreadContext();
+    const { createThread, currentUser } = useThreadContext();
     const [body, setBody] = React.useState('');
 
     const handleSubmit = async () => {
         if (!body.trim()) return;
-        // The layout template doesn't have a specific title input, so we generate a short one from the body 
-        // to maintain compatibility with the ThreadContext backend which expects a title.
         const title = body.split('\n')[0].substring(0, 50) + (body.length > 50 ? '...' : '');
         await createThread(title, body);
         setBody('');
     };
 
     return (
-        <div className="glass-card p-6 mb-8 mt-2">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Create Post</h3>
-            <div className="relative">
+        <div className="card mb-6">
+            <div className="flex items-start gap-4 mb-2">
+                <div className="avatar btn-primary flex items-center justify-center shrink-0 shadow-lg text-lg font-bold">
+                    {currentUser?.name?.[0] || 'U'}
+                </div>
                 <textarea
-                    placeholder="Share your thoughts, resources, or ask a question..."
+                    placeholder="Write a post, share snippet, or ask a question..."
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
-                    className="w-full h-32 bg-[var(--overlay-bg)] border border-[var(--glass)] rounded-xl p-4 text-[var(--text-secondary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--neon-purple)]/50 transition-colors resize-none custom-scrollbar"
+                    style={{
+                        width: '100%',
+                        minHeight: '80px',
+                        background: 'transparent',
+                        border: 'none',
+                        resize: 'none',
+                        color: 'var(--text-primary)',
+                        fontSize: '14px'
+                    }}
+                    className="pt-2 placeholder:text-[var(--text-secondary)] focus:outline-none custom-scrollbar"
                 />
             </div>
 
-            <div className="flex flex-wrap items-center justify-between mt-4 gap-4">
-                <div className="flex flex-wrap gap-2">
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--glass)] text-[var(--text-secondary)] hover:bg-[var(--glass)] transition-colors border border-[var(--glass)]">
-                        <Type size={18} className="text-[var(--neon-purple)]" />
-                        <span className="text-sm font-medium">Add Text</span>
+            <div className="flex justify-between items-center pt-3 mt-1 border-t border-[var(--glass)]">
+                <div className="flex flex-wrap items-center gap-2">
+                    <button className="btn btn-secondary btn-sm text-[var(--text-secondary)]">
+                        <Image size={16} className="text-[var(--neon-pink)]" />
+                        <span>Attach</span>
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--glass)] text-[var(--text-secondary)] hover:bg-[var(--glass)] transition-colors border border-[var(--glass)]">
-                        <Code size={18} className="text-[var(--neon-blue)]" />
-                        <span className="text-sm font-medium">Code Snippet</span>
+                    <button className="btn btn-secondary btn-sm text-[var(--text-secondary)]">
+                        <Code size={16} className="text-[var(--neon-blue)]" />
+                        <span>Snippet</span>
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--glass)] text-[var(--text-secondary)] hover:bg-[var(--glass)] transition-colors border border-[var(--glass)]">
-                        <Paperclip size={18} className="text-[var(--neon-pink)]" />
-                        <span className="text-sm font-medium">Attach</span>
+                    <button className="btn btn-secondary btn-sm text-[var(--text-secondary)]">
+                        <LinkIcon size={16} className="text-[var(--neon-purple)]" />
+                        <span>Resource</span>
                     </button>
                 </div>
 
@@ -49,7 +58,7 @@ const CreatePostCard = () => {
                     whileTap={{ scale: 0.95 }}
                     onClick={handleSubmit}
                     disabled={!body.trim()}
-                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-primary)] px-8 py-2 rounded-lg font-semibold shadow-lg shadow-[var(--neon-purple)]/20 flex items-center gap-2"
+                    className="btn btn-primary shadow-lg"
                 >
                     <span>Post</span>
                     <Send size={16} />

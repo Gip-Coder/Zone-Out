@@ -125,6 +125,18 @@ export default function App() {
     isFocusRunning,
     goals,
     courses,
+    availableWidgets: (() => {
+      try {
+        const u = localStorage.getItem("user");
+        if (u) {
+          const parsed = JSON.parse(u);
+          if (parsed.dashboardLayout && Array.isArray(parsed.dashboardLayout) && parsed.dashboardLayout.length > 0) {
+            return parsed.dashboardLayout.map(w => w.id);
+          }
+        }
+      } catch (e) { }
+      return ['timeline', 'vault', 'timer', 'music', 'ai'];
+    })(),
   });
   dispatchRef.current = handleAiAction;
 
@@ -399,7 +411,7 @@ const fabStyle = {
   alignItems: 'center',
   justifyContent: 'center',
   cursor: 'pointer',
-  boxShadow: '0 10px 30px rgba(124,58,237,0.5)',
+  boxShadow: '0 0 10px rgba(168,85,247,0.35)',
   zIndex: 5000,
   transition: 'all 0.25s ease'
 };

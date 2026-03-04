@@ -76,13 +76,7 @@ export const StudyGroupProvider = ({ groupId, currentUser, children }) => {
 
     return (
         <StudyGroupContext.Provider value={contextValue}>
-            {loading ? (
-                <div className="flex justify-center items-center h-full min-h-[400px]">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                </div>
-            ) : (
-                children
-            )}
+            {children}
         </StudyGroupContext.Provider>
     );
 };

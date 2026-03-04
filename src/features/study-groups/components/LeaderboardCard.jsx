@@ -7,30 +7,42 @@ const MOCK_LEADERBOARD = [
     { rank: 3, name: 'Chris G.', points: 20, avatar: 'https://picsum.photos/seed/chris/100/100' },
 ];
 
+const getRankIcon = (rank) => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return <span className="text-sm font-bold text-[var(--text-secondary)]">{rank}</span>;
+}
+
 const LeaderboardCard = () => {
     return (
-        <div className="glass-card p-5">
+        <div className="card">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-[var(--text-primary)]">Leaderboard</h3>
-                <Trophy size={18} className="text-yellow-500 shrink-0" />
+                <Trophy size={18} className="text-[var(--accent-primary)] shrink-0" />
             </div>
-            <div className="space-y-4">
+            <div className="space-y-2">
                 {MOCK_LEADERBOARD.map((user) => (
-                    <div key={user.name} className="flex items-center gap-3">
-                        <span className="text-sm font-bold text-[var(--text-secondary)] w-4 text-center shrink-0">{user.rank}</span>
+                    <div key={user.name} className="flex items-center gap-3 w-full py-2">
+                        <div className="w-6 text-center shrink-0">
+                            {getRankIcon(user.rank)}
+                        </div>
                         <img
                             src={user.avatar}
                             alt={user.name}
-                            className="w-10 h-10 rounded-full border border-[var(--glass)] object-cover shrink-0"
+                            className="avatar w-8 h-8 rounded-full border border-[var(--glass)]"
                             referrerPolicy="no-referrer"
+                            loading="lazy"
                         />
-                        <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium text-[var(--text-primary)] truncate">{user.name}</h4>
-                        </div>
-                        <span className="text-xs font-semibold text-[var(--neon-purple)] whitespace-nowrap">{user.points} pts</span>
+                        <span className="text-sm font-medium text-[var(--text-primary)] truncate">{user.name}</span>
+                        <div className="flex-1"></div>
+                        <span className="text-sm font-semibold text-[var(--accent-primary)] whitespace-nowrap">{user.points} pts</span>
                     </div>
                 ))}
             </div>
+            <button className="w-full mt-4 py-2 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                View full rankings
+            </button>
         </div>
     );
 };
