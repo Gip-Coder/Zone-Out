@@ -6,6 +6,7 @@ import CreatePost from '../template/CreatePost';
 import PostItem from '../template/PostItem';
 
 export const StudyGroupApp = () => {
+    <div style={{height:"200px", background:"red"}}></div>
     return (
         <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-transparent relative">
             {/* Ambient Background Glow (matching previous styling) */}
@@ -19,14 +20,22 @@ export const StudyGroupApp = () => {
                 <header className="flex flex-wrap lg:flex-nowrap items-center justify-between mb-8 gap-4">
                     <h2 className="text-3xl font-bold text-[var(--text-primary)]">Study Group Feed</h2>
                     <div className="flex items-center gap-4">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} />
-                            <input
-                                type="text"
-                                placeholder="Search groups..."
-                                className="bg-[var(--glass)] border border-[var(--glass)] rounded-full py-2 pl-10 pr-4 text-sm text-[var(--text-secondary)] focus:outline-none focus:border-[var(--neon-purple)]/50 w-48 lg:w-64 transition-all"
-                            />
-                        </div>
+                      <div className="relative w-72">
+    <Search
+        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+        size={18}/>
+
+    <input
+        type="text"
+        placeholder="Search groups..."
+        className="w-full py-3 pl-11 pr-5 text-sm text-white
+        bg-white/5 backdrop-blur-md
+        border border-red-500/70 rounded-full
+        placeholder-gray-400
+        focus:outline-none focus:border-red-500
+        focus:ring-2 focus:ring-red-500/40
+        transition-all duration-200"/>
+</div>
                         <button className="p-2 rounded-full bg-[var(--glass)] border border-[var(--glass)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all relative">
                             <Bell size={20} />
                             <span className="absolute top-2 right-2 w-2 h-2 bg-[var(--neon-pink)] rounded-full border border-black/20"></span>
@@ -42,7 +51,7 @@ export const StudyGroupApp = () => {
 
                 <CreatePost />
 
-                <div className="space-y-6">
+                <div className="space-y-50">
                     <PostItem
                         user={{ name: 'Sarah K.', avatar: 'https://picsum.photos/seed/sarah/100/100' }}
                         likes={124}
