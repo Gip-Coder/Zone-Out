@@ -21,7 +21,6 @@ import FlashcardsPage from './pages/FlashcardsPage';
 import ProgressPage from './pages/ProgressPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
-import GroupDashboard from './features/study-groups/pages/GroupDashboard';
 
 
 export default function App() {
@@ -232,7 +231,7 @@ export default function App() {
             <Route path="/ai" element={<AIPage />} />
             <Route path="/flashcards" element={<FlashcardsPage />} />
             <Route path="/progress" element={<ProgressPage />} />
-            <Route path="/study-groups" element={<GroupDashboard />} />
+            <Route path="/study-groups" element={<PlaceholderPage title="Study Groups" />} />
             <Route path="/resources" element={<PlaceholderPage title="Resources" />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/profile" element={<ProfilePage />} />

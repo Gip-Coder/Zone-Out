@@ -511,3 +511,40 @@
     cursor: pointer;
     font-weight: bold;
 }
+
+/* 3-Column Social Layout */
+.study-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    height: 100%;
+    min-height: calc(100vh - 120px);
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+@media (min-width: 1024px) {
+    .study-layout {
+        display: grid !important;
+        grid-template-columns: 260px minmax(0, 1fr) 280px !important;
+        align-items: start;
+    }
+}
+
+.feed-area {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    height: 100%;
+    overflow-y: auto;
+    min-width: 0;
+    padding-bottom: 24px;
+}
+
+/* Mobile Responsiveness for 3-Column Layout */
+@media (max-width: 1023px) {
+    .feed-area {
+        overflow-y: visible;
+    }
+}
