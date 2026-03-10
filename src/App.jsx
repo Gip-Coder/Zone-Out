@@ -8,7 +8,7 @@ import NotesSection from './Components/NotesSection';
 import Auth from './Components/Auth';
 import Header from './Components/Header';
 import Layout from './Components/Layout';
-import { Bot, Send, X, Music, Timer as TimerIcon } from 'lucide-react';
+import { Music, Timer as TimerIcon } from 'lucide-react';
 import { motion } from "framer-motion";
 import { Brain, Chatbot } from './agent';
 import Widget from './Components/Widget';
@@ -70,6 +70,26 @@ export default function App() {
   const [isTimerWidgetOpen, setIsTimerWidgetOpen] = useState(false);
   const [isMusicWidgetOpen, setIsMusicWidgetOpen] = useState(false);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+
+  // =============================
+  // DASHBOARD CARD → WIDGET BRIDGE
+  // =============================
+  useEffect(() => {
+    const openTimer = () => setIsTimerWidgetOpen(true);
+    const openMusic = () => setIsMusicWidgetOpen(true);
+    const openChat = () => setShowAI(true);
+
+    window.addEventListener('open-timer-widget', openTimer);
+    window.addEventListener('open-music-widget', openMusic);
+    window.addEventListener('open-ai-chat', openChat);
+
+    return () => {
+      window.removeEventListener('open-timer-widget', openTimer);
+      window.removeEventListener('open-music-widget', openMusic);
+      window.removeEventListener('open-ai-chat', openChat);
+    };
+  }, []);
+
   // =============================
   // AI DISPATCHER (Brain executes these)
   // =============================
@@ -148,15 +168,9 @@ export default function App() {
   );
 
   // =============================
-  // CONTROL CHAT STATE (Study Buddy – commands)
+  // UNIFIED AI PANEL STATE
   // =============================
-  const [showChat, setShowChat] = useState(false);
-  const [chatHistory, setChatHistory] = useState([
-    { role: 'model', text: "I'm Study Buddy. I can control your timer, navigate tabs, and manage your goals." }
-  ]);
-  const [chatInput, setChatInput] = useState("");
-  const [isChatting, setIsChatting] = useState(false);
-  const chatEndRef = useRef(null);
+  const [showAI, setShowAI] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -174,28 +188,7 @@ export default function App() {
     } catch (_) { }
   };
 
-  const handleSendMessage = async () => {
-    if (!chatInput.trim()) return;
 
-    const userMsg = chatInput;
-    setChatHistory(prev => [...prev, { role: 'user', text: userMsg }]);
-    setChatInput("");
-    setIsChatting(true);
-
-    try {
-      const reply = await brain.think(userMsg);
-      setChatHistory(prev => [...prev, { role: 'model', text: reply }]);
-    } catch (e) {
-      console.error("AI Error", e);
-      setChatHistory(prev => [...prev, { role: 'model', text: "I couldn't process that. Please try again." }]);
-    }
-
-    setIsChatting(false);
-  };
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatHistory]);
 
   // =============================
   // 🔐 AUTH GATE
@@ -239,8 +232,8 @@ export default function App() {
         </div>
       </Layout>
 
-      {/* Chatbot: general student queries (Q&A only) */}
-      <Chatbot brain={brain} placeholder="Ask a study question..." />
+      {/* Unified AI Assistant */}
+      <Chatbot brain={brain} isOpen={showAI} onToggle={setShowAI} />
 
       {/* WIDGET TOGGLES (Bottom Left) */}
       <div style={widgetToggleGroupStyle}>
@@ -264,8 +257,8 @@ export default function App() {
           minWidth={200}
           minHeight={200}
           baseWidth={360}
-          baseHeight={360}
-          lockAspectRatio={true}
+          baseHeight={420}
+          lockAspectRatio={false}
           strictHeadless={isFocusRunning || timerHasStarted}
         >
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -289,8 +282,8 @@ export default function App() {
           minWidth={280}
           minHeight={450}
           baseWidth={450}
-          baseHeight={520}
-          lockAspectRatio={true}
+          baseHeight={570}
+          lockAspectRatio={false}
           strictHeadless={isMusicPlaying}
           onBack={() => setIsMusicPlaying(false)}
         >
@@ -298,47 +291,6 @@ export default function App() {
             <MusicPlayer setIsPlaying={setIsMusicPlaying} />
           </div>
         </Widget>
-      )}
-
-      {/* Control: Study Buddy – commands (timer, navigate, goals) */}
-      <button onClick={() => setShowChat(!showChat)} style={fabStyle}>
-        {showChat ? <X size={24} /> : <Bot size={28} />}
-      </button>
-
-      {/* FLOATING CONTROL PANEL */}
-      {showChat && (
-        <motion.div
-          style={chatOverlayStyle}
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <div style={buddyHeader}>
-            Study Buddy AI
-            <X size={18} style={{ cursor: 'pointer' }} onClick={() => setShowChat(false)} />
-          </div>
-          <div style={chatArea}>
-            {chatHistory.map((m, i) => (
-              <div key={i} style={m.role === 'user' ? userMsgStyle : buddyMsgStyle}>
-                {m.text}
-              </div>
-            ))}
-            {isChatting && <div>Thinking...</div>}
-            <div ref={chatEndRef} />
-          </div>
-          <div style={inputArea}>
-            <input
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Command me..."
-              style={chatInputStyle}
-            />
-            <button onClick={handleSendMessage} style={sendBtn}>
-              <Send size={16} />
-            </button>
-          </div>
-        </motion.div>
       )}
     </motion.div>
   );
@@ -396,109 +348,6 @@ const tabStyle = {
   color: 'var(--text-secondary)'
 };
 
-const fabStyle = {
-  position: 'fixed',
-  bottom: '32px',
-  right: '32px',
-  width: '64px',
-  height: '64px',
-  borderRadius: '50%',
-  background: 'var(--btn-primary-bg)',
-  border: 'none',
-  color: 'var(--btn-primary-text)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  boxShadow: '0 0 10px rgba(168,85,247,0.35)',
-  zIndex: 5000,
-  transition: 'all 0.25s ease'
-};
-
-const chatOverlayStyle = {
-  position: 'absolute',
-  bottom: '110px',
-  right: '32px',
-  width: '380px',
-  maxWidth: 'calc(100vw - 48px)',
-  height: '420px',
-  maxHeight: '60vh',
-  background: 'var(--bg-secondary)',
-  borderRadius: 'var(--radius-lg, 16px)',
-  border: '1px solid var(--glass)',
-  boxShadow: '0 16px 48px rgba(0,0,0,0.4)',
-  display: 'flex',
-  flexDirection: 'column',
-  overflow: 'hidden',
-  zIndex: 4999
-};
-
-const buddyHeader = {
-  padding: '12px 16px',
-  borderBottom: '1px solid var(--glass)',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  fontWeight: '600',
-  color: 'var(--text-primary)'
-};
-
-const chatArea = {
-  flex: 1,
-  overflowY: 'auto',
-  padding: '12px',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '10px'
-};
-
-const userMsgStyle = {
-  alignSelf: 'flex-end',
-  background: 'rgba(124,58,237,0.25)',
-  border: '1px solid rgba(124,58,237,0.35)',
-  padding: '10px 12px',
-  borderRadius: '12px',
-  maxWidth: '85%'
-};
-
-const buddyMsgStyle = {
-  alignSelf: 'flex-start',
-  background: 'var(--glass)',
-  border: '1px solid var(--glass)',
-  padding: '10px 12px',
-  borderRadius: '12px',
-  maxWidth: '85%'
-};
-
-const inputArea = {
-  padding: '12px',
-  borderTop: '1px solid var(--glass)',
-  display: 'flex',
-  gap: '8px'
-};
-
-const chatInputStyle = {
-  flex: 1,
-  background: 'var(--glass)',
-  border: '1px solid var(--glass)',
-  color: 'var(--text-primary)',
-  borderRadius: 'var(--radius-md, 8px)',
-  padding: '10px 12px',
-  outline: 'none',
-  fontSize: '14px'
-};
-
-const sendBtn = {
-  background: 'var(--btn-primary-bg)',
-  border: 'none',
-  borderRadius: 'var(--radius-md, 8px)',
-  padding: '10px 14px',
-  color: 'var(--btn-primary-text)',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center'
-};
 
 const widgetToggleGroupStyle = {
   position: 'fixed',

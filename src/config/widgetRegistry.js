@@ -20,21 +20,27 @@ export const WIDGET_REGISTRY = {
         title: "Focus Timer",
         component: "TimerWidget",
         icon: Timer,
-        defaultSize: "medium"
+        defaultSize: "medium",
+        desc: "Start a focus session with a customizable Pomodoro timer.",
+        linkText: "Open Timer"
     },
     music: {
         id: "music",
         title: "Music",
         component: "MusicWidget",
         icon: Music,
-        defaultSize: "medium"
+        defaultSize: "medium",
+        desc: "Listen to lo-fi beats and ambient sounds while you study.",
+        linkText: "Open Music"
     },
     ai: {
         id: "ai",
         title: "AI Assistant",
         component: "AIWidget",
         icon: Bot,
-        defaultSize: "medium"
+        defaultSize: "medium",
+        desc: "Chat with Study Buddy to control your timer, goals, and more.",
+        linkText: "Open Chat"
     }
 };
 

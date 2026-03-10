@@ -6,7 +6,8 @@ export const handleFlashcardsRequest = async (req, res) => {
     const result = await generateFlashcards({ courseName, moduleTitle, topics: topics || [] });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: "Flashcards generation failed" });
+    console.error("Flashcards generation failed:", error.message);
+    res.status(500).json({ message: error.message || "Flashcards generation failed" });
   }
 };
 
@@ -21,7 +22,8 @@ export const handleAIRequest = async (req, res) => {
     const response = await generateAIResponse(message, context || {});
     res.json({ response });
   } catch (error) {
-    res.status(500).json({ message: "AI failed" });
+    console.error("AI chat failed:", error.message);
+    res.status(500).json({ message: error.message || "AI failed" });
   }
 };
 
@@ -32,8 +34,8 @@ export const handleThinkRequest = async (req, res) => {
     const result = await generateThinkResponse(userInput, context || {});
     res.json(result);
   } catch (error) {
-    console.error("AI think failed:", error);
-    res.status(500).json({ message: "AI think failed" });
+    console.error("AI think failed:", error.message);
+    res.status(500).json({ message: error.message || "AI think failed" });
   }
 };
 

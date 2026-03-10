@@ -116,10 +116,27 @@ function SortableWidget({ widget, isEditMode, onRemove, theme }) {
     </div>
   );
 
+  // IDs that should trigger floating widgets/chatbox instead of page navigation
+  const ACTION_WIDGET_IDS = ['timer', 'music', 'ai'];
+
+  const handleCardClick = (id) => {
+    if (id === 'timer') {
+      window.dispatchEvent(new CustomEvent('open-timer-widget'));
+    } else if (id === 'music') {
+      window.dispatchEvent(new CustomEvent('open-music-widget'));
+    } else if (id === 'ai') {
+      window.dispatchEvent(new CustomEvent('open-ai-chat'));
+    }
+  };
+
   return (
     <div ref={setNodeRef} style={style}>
       {isEditMode ? (
         <div className="widget-edit-wrapper">
+          {widgetContent}
+        </div>
+      ) : ACTION_WIDGET_IDS.includes(registryData.id) ? (
+        <div onClick={() => handleCardClick(registryData.id)} style={{ cursor: 'pointer' }}>
           {widgetContent}
         </div>
       ) : (
@@ -208,7 +225,21 @@ export default function Dashboard() {
       } catch (e) { }
 
     } catch (e) {
-      toastError("Failed to save layout.");
+      // API failed — save to localStorage as fallback
+      console.warn("API layout save failed, saving locally:", e.message);
+      setDashboardLayout(pendingLayout);
+      setIsEditMode(false);
+      setShowAddModal(false);
+
+      try {
+        const u = localStorage.getItem("user");
+        const parsed = u ? JSON.parse(u) : {};
+        parsed.dashboardLayout = pendingLayout;
+        localStorage.setItem("user", JSON.stringify(parsed));
+        toastSuccess("Layout saved locally!");
+      } catch (localErr) {
+        toastError("Failed to save layout.");
+      }
     } finally {
       setIsSaving(false);
     }

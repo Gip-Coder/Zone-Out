@@ -1,13 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, CheckCircle, Circle } from 'lucide-react';
 import { api } from '../services/apiClient';
+
+const STORAGE_KEY = "zoneout_goals";
+
+function loadLocalGoals() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveLocalGoals(goals) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(goals)); } catch { }
+}
 
 export default function StudyGoals() {
   const [goals, setGoals] = useState([]);
   const [newGoal, setNewGoal] = useState("");
+  const [useLocal, setUseLocal] = useState(false);
+
+  // Persist goals to localStorage whenever they change
+  useEffect(() => {
+    if (goals.length > 0 || useLocal) {
+      saveLocalGoals(goals);
+    }
+  }, [goals, useLocal]);
 
   // ===============================
-  // LOAD GOALS FROM BACKEND
+  // LOAD GOALS — API first, localStorage fallback
   // ===============================
   useEffect(() => {
     const fetchGoals = async () => {
@@ -15,12 +36,14 @@ export default function StudyGoals() {
         const data = await api.get("/goals");
         if (Array.isArray(data)) {
           setGoals(data);
+          saveLocalGoals(data);
         } else {
           setGoals([]);
         }
       } catch (err) {
-        console.error("Error fetching goals:", err);
-        setGoals([]);
+        console.warn("API unavailable, using local goals:", err.message);
+        setUseLocal(true);
+        setGoals(loadLocalGoals());
       }
     };
 
@@ -34,68 +57,115 @@ export default function StudyGoals() {
   const addGoal = async () => {
     if (!newGoal.trim()) return;
 
-    try {
-      const data = await api.post("/goals", {
-        text: newGoal,
-        targetDate: "",
-        plan: []
-      });
+    const localGoal = {
+      _id: `local_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      text: newGoal,
+      targetDate: "",
+      plan: [],
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
 
-      // safer state update
-      setGoals(prev => [data, ...prev]);
-      setNewGoal("");
-    } catch (error) {
-      console.error("Error adding goal:", error);
+    if (!useLocal) {
+      try {
+        const data = await api.post("/goals", {
+          text: newGoal,
+          targetDate: "",
+          plan: []
+        });
+
+        setGoals(prev => [data, ...prev]);
+        setNewGoal("");
+        return;
+      } catch (error) {
+        console.warn("API add failed, saving locally:", error.message);
+        setUseLocal(true);
+      }
     }
+
+    // Fallback: add to local state
+    setGoals(prev => [localGoal, ...prev]);
+    setNewGoal("");
   };
 
   // ===============================
   // TOGGLE MAIN GOAL
   // ===============================
   const toggleMainGoal = async (goal) => {
-    try {
-      const updated = await api.put(`/goals/${goal._id}`, {
-        completed: !goal.completed
-      });
+    const toggled = { ...goal, completed: !goal.completed };
 
-      setGoals(prev =>
-        prev.map(g => g._id === goal._id ? updated : g)
-      );
-    } catch (error) {
-      console.error("Error toggling goal:", error);
+    if (!useLocal) {
+      try {
+        const updated = await api.put(`/goals/${goal._id}`, {
+          completed: !goal.completed
+        });
+
+        setGoals(prev =>
+          prev.map(g => g._id === goal._id ? updated : g)
+        );
+        return;
+      } catch (error) {
+        console.warn("API toggle failed, updating locally:", error.message);
+        setUseLocal(true);
+      }
     }
+
+    // Fallback
+    setGoals(prev =>
+      prev.map(g => g._id === goal._id ? toggled : g)
+    );
   };
 
   // ===============================
   // DELETE GOAL
   // ===============================
   const deleteGoal = async (id) => {
-    try {
-      await api.delete(`/goals/${id}`);
+    if (!useLocal) {
+      try {
+        await api.delete(`/goals/${id}`);
 
-      setGoals(prev =>
-        prev.filter(goal => goal._id !== id)
-      );
-    } catch (error) {
-      console.error("Error deleting goal:", error);
+        setGoals(prev =>
+          prev.filter(goal => goal._id !== id)
+        );
+        return;
+      } catch (error) {
+        console.warn("API delete failed, removing locally:", error.message);
+        setUseLocal(true);
+      }
     }
+
+    // Fallback
+    setGoals(prev =>
+      prev.filter(goal => goal._id !== id)
+    );
   };
 
   // ===============================
   // UPDATE DEADLINE
   // ===============================
   const updateGoalDate = async (goal, newDate) => {
-    try {
-      const updated = await api.put(`/goals/${goal._id}`, {
-        targetDate: newDate
-      });
+    const updated = { ...goal, targetDate: newDate };
 
-      setGoals(prev =>
-        prev.map(g => g._id === goal._id ? updated : g)
-      );
-    } catch (error) {
-      console.error("Error updating date:", error);
+    if (!useLocal) {
+      try {
+        const serverUpdated = await api.put(`/goals/${goal._id}`, {
+          targetDate: newDate
+        });
+
+        setGoals(prev =>
+          prev.map(g => g._id === goal._id ? serverUpdated : g)
+        );
+        return;
+      } catch (error) {
+        console.warn("API date update failed, updating locally:", error.message);
+        setUseLocal(true);
+      }
     }
+
+    // Fallback
+    setGoals(prev =>
+      prev.map(g => g._id === goal._id ? updated : g)
+    );
   };
 
   // ===============================

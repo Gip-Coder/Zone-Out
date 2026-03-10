@@ -1,51 +1,61 @@
 import { callOpenRouter } from "./providers/openrouter.js";
 import { callGemini } from "./providers/gemini.js";
+import { truncatePrompt } from "./providers/rateLimiter.js";
 import { buildContextPrompt, buildThinkPrompt, buildChatPrompt } from "../utils/contextBuilder.js";
 
-/** Generic productivity assistant (existing behavior). */
+/** Max words for the final prompt sent to AI (keeps token usage efficient). */
+const MAX_PROMPT_WORDS = 100;
+
+/**
+ * Unified AI caller: tries OpenRouter first, falls back to Gemini.
+ * At least one key must be set. Returns the raw text from whichever succeeds.
+ */
+async function callAI(rawPrompt) {
+  const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
+  const hasGemini = !!process.env.GEMINI_API_KEY;
+
+  if (!hasOpenRouter && !hasGemini) {
+    throw new Error("No AI provider configured. Set OPENROUTER_API_KEY or GEMINI_API_KEY.");
+  }
+
+  // Truncate prompt for efficient context
+  const prompt = truncatePrompt(rawPrompt, MAX_PROMPT_WORDS);
+
+  // Try OpenRouter first (if key exists)
+  if (hasOpenRouter) {
+    try {
+      return await callOpenRouter(prompt);
+    } catch (err) {
+      console.warn("OpenRouter failed:", err.message);
+      if (hasGemini) {
+        console.log("Falling back to Gemini...");
+      } else {
+        throw err; // No fallback available
+      }
+    }
+  }
+
+  // Try Gemini (primary or fallback)
+  return await callGemini(prompt);
+}
+
+/** Generic productivity assistant. */
 export const generateAIResponse = async (message, context) => {
   const prompt = buildContextPrompt(message, context);
-  try {
-    return await callOpenRouter(prompt);
-  } catch (error) {
-    console.log("Fallback to Gemini");
-    return await callGemini(prompt);
-  }
+  return await callAI(prompt);
 };
 
-/** Study Buddy control: user input + app context → { text, action? }. Tries OpenRouter then Gemini so AI works when one quota is exceeded. */
+/** Study Buddy control: user input + app context → { text, action? }. */
 export const generateThinkResponse = async (userInput, appContext) => {
   const prompt = buildThinkPrompt(userInput, appContext);
-  if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) {
-    throw new Error("Set OPENROUTER_API_KEY or GEMINI_API_KEY on the server for AI fallback.");
-  }
-  let raw;
-  try {
-    raw = process.env.OPENROUTER_API_KEY ? await callOpenRouter(prompt) : await callGemini(prompt);
-  } catch (e) {
-    if (process.env.OPENROUTER_API_KEY && process.env.GEMINI_API_KEY) {
-      console.log("Think: primary provider failed, fallback to Gemini");
-      raw = await callGemini(prompt);
-    } else throw e;
-  }
+  const raw = await callAI(prompt);
   return parseThinkResponse(raw);
 };
 
-/** Study Buddy chat: message + history → reply text. Tries OpenRouter then Gemini. */
+/** Study Buddy chat: message + history → reply text. */
 export const generateChatResponse = async (message, conversationHistory = []) => {
   const prompt = buildChatPrompt(message, conversationHistory);
-  if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) {
-    throw new Error("Set OPENROUTER_API_KEY or GEMINI_API_KEY on the server for AI fallback.");
-  }
-  try {
-    return process.env.OPENROUTER_API_KEY ? await callOpenRouter(prompt) : await callGemini(prompt);
-  } catch (error) {
-    if (process.env.OPENROUTER_API_KEY && process.env.GEMINI_API_KEY) {
-      console.log("Chat: primary provider failed, fallback to Gemini");
-      return await callGemini(prompt);
-    }
-    throw error;
-  }
+  return await callAI(prompt);
 };
 
 function parseThinkResponse(text) {
@@ -80,10 +90,6 @@ export const generateFlashcards = async (payload) => {
   const { courseName, moduleTitle, topics = [] } = payload;
   const topicList = Array.isArray(topics) ? topics : [];
 
-  if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) {
-    return manualFlashcardsFallback(courseName, moduleTitle, topicList);
-  }
-
   const prompt = `You are a study assistant. Generate exactly 8–10 flashcards for this course module.
 Course: "${courseName || "General"}"
 Module: "${moduleTitle || "General"}"
@@ -93,12 +99,7 @@ Return RAW JSON only, no markdown or explanation:
 { "cards": [ { "front": "question or term", "back": "answer or definition" }, ... ] }`;
 
   try {
-    let raw;
-    if (process.env.OPENROUTER_API_KEY) {
-      raw = await callOpenRouter(prompt);
-    } else {
-      raw = await callGemini(prompt);
-    }
+    const raw = await callAI(prompt);
     const start = raw.indexOf("{");
     const end = raw.lastIndexOf("}");
     if (start === -1 || end === -1) throw new Error("No JSON");
@@ -112,22 +113,13 @@ Return RAW JSON only, no markdown or explanation:
     if (cards.length === 0) return manualFlashcardsFallback(courseName, moduleTitle, topicList);
     return { cards: cards.map((c) => ({ front: c.front || "", back: c.back || "" })).filter((c) => c.front || c.back) };
   } catch (e) {
+    console.warn("Flashcard AI generation failed:", e.message);
     return manualFlashcardsFallback(courseName, moduleTitle, topicList);
   }
 }
 
 /** Raw generation for frontend custom workflows */
 export const generateRawContent = async (prompt) => {
-  if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) {
-    throw new Error("Set OPENROUTER_API_KEY or GEMINI_API_KEY on the server for AI fallback.");
-  }
-  try {
-    return process.env.OPENROUTER_API_KEY ? await callOpenRouter(prompt) : await callGemini(prompt);
-  } catch (error) {
-    if (process.env.OPENROUTER_API_KEY && process.env.GEMINI_API_KEY) {
-      console.log("Generate: primary provider failed, fallback to Gemini");
-      return await callGemini(prompt);
-    }
-    throw error;
-  }
+  return await callAI(prompt);
 };
+

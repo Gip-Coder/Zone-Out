@@ -188,7 +188,7 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
             flexDirection: "column",
             alignItems: "center",
             gap: 10,
-            width: "85%"
+            width: "100%"
           }}
         >
           <div style={{ fontSize: "2rem", fontWeight: 700, fontFamily: "monospace" }}>
@@ -224,7 +224,7 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
 
           {/* Manual Set */}
           {isEditing && (
-            <div style={{ display: "flex", gap: 8, marginTop: 18, alignItems: "center" }} onClick={e => e.stopPropagation()}>
+            <div className="timer-controls" onClick={e => e.stopPropagation()}>
               <input
                 type="number"
                 min="0"

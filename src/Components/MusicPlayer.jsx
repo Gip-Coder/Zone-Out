@@ -170,7 +170,7 @@ export default function MusicPlayer({ isPlaying, setIsPlaying }) {
             Default Focus Playlist
           </p>
         )}
-        <iframe src={embedUrl} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style={{ ...styles.iframe, flex: 1, height: '100%', marginBottom: isPlaying ? 0 : '16px' }} />
+        <iframe src={embedUrl} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style={{ ...styles.iframe, marginBottom: isPlaying ? 0 : '16px' }} />
       </div>
 
       {!isPlaying && (

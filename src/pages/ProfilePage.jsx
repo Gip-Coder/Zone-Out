@@ -44,7 +44,7 @@ export default function ProfilePage() {
   );
 }
 
-const pageStyle = { padding: '32px', maxWidth: '720px', margin: '0 auto' };
+const pageStyle = { padding: '32px' };
 const titleStyle = { fontSize: '28px', fontWeight: '700', marginBottom: '8px' };
 const subStyle = { color: 'var(--text-secondary)', marginBottom: '24px' };
 const boxStyle = {

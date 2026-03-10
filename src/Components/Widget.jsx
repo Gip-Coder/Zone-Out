@@ -48,7 +48,7 @@ export default function Widget({
             minWidth={minWidth}
             minHeight={minHeight}
             lockAspectRatio={lockAspectRatio}
-            dragHandleClassName="widget-drag-handle"
+            dragHandleClassName="widget-rnd-drag"
             bounds="window"
             disableDragging={false}
             style={{
@@ -73,41 +73,21 @@ export default function Widget({
                     pointerEvents: 'auto'
                 }}
             >
-                {/* Optional Header */}
+                {/* Widget Header */}
                 {!actualHideHeader && !actualIsTransparent && (
                     <div
-                        className="widget-drag-handle"
-                        style={{
-                            padding: '12px 16px',
-                            borderBottom: '1px solid var(--glass)',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            cursor: 'grab',
-                            background: 'var(--bg-secondary)',
-                        }}
+                        className="widget-rnd-drag widget-header"
                         onPointerDown={(e) => e.currentTarget.style.cursor = 'grabbing'}
                         onPointerUp={(e) => e.currentTarget.style.cursor = 'grab'}
                     >
-                        <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '14px' }}>
-                            {title}
-                        </div>
+                        <h3 className="widget-title">{title}</h3>
                         <button
+                            className="widget-close"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onClose();
                             }}
-                            onPointerDown={(e) => e.stopPropagation()} // Prevent drag when clicking close
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--text-secondary)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '4px',
-                            }}
+                            onPointerDown={(e) => e.stopPropagation()}
                         >
                             <X size={16} />
                         </button>
@@ -116,7 +96,7 @@ export default function Widget({
 
                 {/* Headless Hover Controls */}
                 {(actualHideHeader || actualIsTransparent) && (
-                    <div className="widget-drag-handle" style={headlessControlsStyle(isHovered)}>
+                    <div className="widget-rnd-drag" style={headlessControlsStyle(isHovered)}>
                         {onBack && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); onBack(); }}
@@ -138,29 +118,34 @@ export default function Widget({
                 )}
 
                 {/* Content Area */}
-                <div
-                    style={{
-                        flex: 1,
-                        overflow: 'hidden',
-                        display: 'flex',
-                        pointerEvents: 'auto' // ALWAYS allow clicks through to content, even if transparent
-                    }}
-                    onPointerDown={(e) => {
-                        // Prevent dragging when interacting with actual content
-                        if (actualHideHeader || actualIsTransparent) e.stopPropagation();
-                    }}
-                >
-                    <div style={{
-                        pointerEvents: 'auto',
-                        width: baseWidth ? `${baseWidth}px` : '100%',
-                        height: baseHeight ? `${baseHeight}px` : (baseWidth ? `calc(100% / ${(typeof state.width === 'string' ? parseFloat(state.width) : state.width) / baseWidth})` : '100%'),
-                        transform: baseWidth ? `scale(${(typeof state.width === 'string' ? parseFloat(state.width) : state.width) / baseWidth})` : 'none',
-                        transformOrigin: 'top left',
-                        transition: 'none' // Prevent CSS lag during resizing
-                    }}>
-                        {children}
-                    </div>
-                </div>
+                {(() => {
+                    const headerHeight = (!actualHideHeader && !actualIsTransparent) ? 55 : 0;
+                    const contentHeight = baseHeight ? baseHeight - headerHeight : undefined;
+                    return (
+                        <div
+                            style={{
+                                flex: 1,
+                                overflow: 'auto',
+                                display: 'flex',
+                                pointerEvents: 'auto'
+                            }}
+                            onPointerDown={(e) => {
+                                if (actualHideHeader || actualIsTransparent) e.stopPropagation();
+                            }}
+                        >
+                            <div style={{
+                                pointerEvents: 'auto',
+                                width: baseWidth ? `${baseWidth}px` : '100%',
+                                height: contentHeight ? `${contentHeight}px` : (baseWidth ? `calc(100% / ${(typeof state.width === 'string' ? parseFloat(state.width) : state.width) / baseWidth})` : '100%'),
+                                transform: baseWidth ? `scale(${(typeof state.width === 'string' ? parseFloat(state.width) : state.width) / baseWidth})` : 'none',
+                                transformOrigin: 'top left',
+                                transition: 'none'
+                            }}>
+                                {children}
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
         </Rnd>
     );

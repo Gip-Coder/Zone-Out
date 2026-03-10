@@ -151,10 +151,8 @@ const headerStyle = {
 };
 
 const innerStyle = {
-  maxWidth: '1400px',
   height: '100%',
-  margin: '0 auto',
-  padding: '0 24px',
+  padding: '0 24px 0 16px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',

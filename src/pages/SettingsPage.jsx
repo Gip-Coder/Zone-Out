@@ -40,8 +40,6 @@ export default function SettingsPage() {
 // --- STYLES ---
 const pageStyle = {
     padding: '32px',
-    maxWidth: '720px',
-    margin: '0 auto',
 };
 
 const titleStyle = {

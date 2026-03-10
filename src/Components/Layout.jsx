@@ -19,7 +19,7 @@ export default function Layout({ children, user, onLogout }) {
     };
 
     return (
-        <div className="layout-wrapper">
+        <>
             <Header
                 onLogout={onLogout}
                 user={user}
@@ -27,14 +27,21 @@ export default function Layout({ children, user, onLogout }) {
                 isMobileMenuOpen={isMobileMenuOpen}
             />
 
-            <Sidebar
-                isMobileMenuOpen={isMobileMenuOpen}
-                onMobileClose={closeMobileMenu}
-            />
+            <div className="app-layout">
+                <Sidebar
+                    isMobileMenuOpen={isMobileMenuOpen}
+                    onMobileClose={closeMobileMenu}
+                />
 
-            <main className={`main-content ${isCustomScrollRoute ? 'overflow-hidden' : ''}`}>
-                {children}
-            </main>
-        </div>
+                {/* Spacer keeps sidebar width in flex flow so main-content centers properly */}
+                <div className="sidebar-spacer" />
+
+                <main className={`main-content ${isCustomScrollRoute ? 'overflow-hidden' : ''}`}>
+                    <div className="content-center-wrapper">
+                        {children}
+                    </div>
+                </main>
+            </div>
+        </>
     );
 }

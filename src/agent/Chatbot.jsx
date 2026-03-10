@@ -1,24 +1,46 @@
 import React, { useState, useEffect, useRef } from "react";
-import { MessageSquare, Send, X, Copy } from "lucide-react";
-import { Brain } from "./Brain";
+import { Bot, Send, X, Copy } from "lucide-react";
 
 const INITIAL_MESSAGE = {
   role: "assistant",
-  content: "Hi! I'm your ZoneOut Study Buddy. Ask me anything — concepts, doubts, or study tips.",
+  content:
+    "Hi! I'm your ZoneOut AI assistant.\nI can help explain study concepts and also control the app.\nTry asking a question or say something like 'start a 25 minute timer'.",
 };
 
 /**
- * Chatbot for general student queries and doubts. Uses Brain.chat() only (no app control).
- * Pass a Brain instance (can be created with no getAppState/dispatch for chat-only).
+ * Detect whether user input looks like an app-control command (timer, navigation, goals, etc.)
+ * rather than a conversational study question.
  */
-export default function Chatbot({ brain, goals = [], placeholder = "Ask a study question..." }) {
-  const [isOpen, setIsOpen] = useState(false);
+function looksLikeCommand(input) {
+  const lower = input.toLowerCase().trim();
+  const commandPatterns = [
+    // Timer
+    /\btimer\b/, /\bstart\b/, /\bstop\b/, /\bpause\b/, /\bresume\b/, /\bpomodoro\b/,
+    /\bfocus\b.*\b(session|time|minute|min)\b/,
+    /\bset\b.*\b(timer|time|minute|min)\b/,
+    /\b\d+\s*(min|minute|minutes|m)\b/,
+    // Navigation
+    /\bnavigate\b/, /\bgo\s*to\b/, /\bopen\b/, /\bswitch\s*to\b/, /\bshow\b.*\b(page|tab|view)\b/,
+    /\b(timeline|vault|course|flashcard|progress|setting|profile|dashboard|music|resource)\b/,
+    // Goals
+    /\badd\s*goal\b/, /\bgoal\b/, /\bremove\s*goal\b/, /\bdelete\s*goal\b/, /\btoggle\s*goal\b/,
+    // General control
+    /\bturn\s*(on|off)\b/, /\benable\b/, /\bdisable\b/,
+  ];
+  return commandPatterns.some((pattern) => pattern.test(lower));
+}
+
+/**
+ * Unified AI Chatbot — single interface for both study Q&A and app control.
+ * Controlled component: open/close state is managed externally via isOpen + onToggle.
+ */
+export default function Chatbot({ brain, isOpen, onToggle, placeholder = "Ask anything or give a command..." }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([INITIAL_MESSAGE]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  const effectiveBrain = brain || (typeof Brain !== "undefined" && new Brain());
+  const effectiveBrain = brain;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -44,19 +66,37 @@ export default function Chatbot({ brain, goals = [], placeholder = "Ask a study 
     setLoading(true);
 
     try {
-      const history = messages.slice(1).map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-      const reply = await effectiveBrain.chat(textToSend, history);
+      let reply;
+
+      if (looksLikeCommand(textToSend)) {
+        // Intent looks like app control → use brain.think()
+        try {
+          reply = await effectiveBrain.think(textToSend);
+        } catch (thinkErr) {
+          // think() failed → graceful fallback to chat()
+          console.warn("brain.think() failed, falling back to chat():", thinkErr.message);
+          const history = messages
+            .filter((m) => m.role && m.content)
+            .map((m) => ({ role: m.role, content: m.content }));
+          reply = await effectiveBrain.chat(textToSend, history);
+        }
+      } else {
+        // Conversational Q&A → use brain.chat()
+        const history = messages
+          .filter((m) => m.role && m.content)
+          .map((m) => ({ role: m.role, content: m.content }));
+        reply = await effectiveBrain.chat(textToSend, history);
+      }
+
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch (err) {
-      console.error("Chatbot error:", err);
+      console.error("AI error:", err);
+      const errorDetail = err.message || "Unknown error";
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "Sorry, I couldn't connect. Check your API key or internet.",
+          content: `⚠️ AI request failed: ${errorDetail}\n\nPlease check your internet connection or try again later.`,
         },
       ]);
     } finally {
@@ -66,21 +106,16 @@ export default function Chatbot({ brain, goals = [], placeholder = "Ask a study 
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    if (typeof window !== "undefined" && window.alert) {
-      window.alert("Copied to clipboard!");
-    }
   };
 
-  if (!effectiveBrain) {
-    return null;
-  }
+  if (!effectiveBrain) return null;
 
   return (
     <div style={containerStyle}>
       {isOpen ? (
         <div style={panelStyle}>
           <div style={headerStyle}>
-            <span style={titleStyle}>Study Buddy</span>
+            <span style={titleStyle}>ZoneOut AI</span>
             <div style={headerActionsStyle}>
               <button
                 type="button"
@@ -92,7 +127,7 @@ export default function Chatbot({ brain, goals = [], placeholder = "Ask a study 
               </button>
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={() => onToggle(false)}
                 style={iconBtnStyle}
                 aria-label="Close"
               >
@@ -160,11 +195,11 @@ export default function Chatbot({ brain, goals = [], placeholder = "Ask a study 
       ) : (
         <button
           type="button"
-          onClick={() => setIsOpen(true)}
+          onClick={() => onToggle(true)}
           style={fabStyle}
-          aria-label="Open chat"
+          aria-label="Open AI assistant"
         >
-          <MessageSquare size={26} />
+          <Bot size={28} />
         </button>
       )}
 
@@ -184,18 +219,22 @@ export default function Chatbot({ brain, goals = [], placeholder = "Ask a study 
   );
 }
 
+/* ============================
+   STYLES
+   ============================ */
+
 const containerStyle = {
   position: "fixed",
   bottom: "24px",
-  right: "100px",
+  right: "24px",
   zIndex: 999,
 };
 
 const panelStyle = {
-  width: "360px",
+  width: "380px",
   maxWidth: "calc(100vw - 32px)",
-  height: "480px",
-  maxHeight: "70vh",
+  height: "500px",
+  maxHeight: "75vh",
   borderRadius: "16px",
   background: "var(--bg-secondary, rgba(30, 30, 40, 0.95))",
   border: "1px solid rgba(255,255,255,0.08)",
