@@ -891,16 +891,33 @@ export default function App() {
       {/* 5. Syllabus Modal */}
       {showSyllabusModal && activeCourse && (
         <div style={{ ...modalOverlayStyle, zIndex: 5000 }}>
-          <div className="custom-scrollbar" style={{ ...modalContentStyle(isMobile), maxHeight: 'calc(100vh - 100px)', overflowY: 'auto', maxWidth: '750px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}><h3 style={{ margin: 0 }}>Syllabus</h3><X onClick={() => setShowSyllabusModal(false)} style={{ cursor: 'pointer' }} /></div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ ...modalContentStyle(isMobile), padding: 0, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 140px)', marginTop: '60px', maxWidth: '750px', overflow: 'hidden' }}>
+            
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 28px', borderBottom: '1px solid var(--glass)' }}>
+              <h3 style={{ margin: 0 }}>Syllabus</h3>
+              <X onClick={() => setShowSyllabusModal(false)} style={{ cursor: 'pointer' }} />
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               {activeCourse.modules.map((m, i) => (
-                <div key={i} style={{ border: '1px solid var(--glass)', borderRadius: 12, overflow: 'hidden' }}>
-                  <div onClick={() => toggleSyllabusAccordion(i)} style={{ padding: '18px 24px', background: 'var(--glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', gap: 16 }}><span style={{ flex: 1, lineHeight: 1.5, fontSize: '1.05rem', fontWeight: 500 }}>{m.title}</span>{expandedSyllabusIndex === i ? <ChevronUp size={18} style={{ flexShrink: 0 }} /> : <ChevronDown size={18} style={{ flexShrink: 0 }} />}</div>
-                  {expandedSyllabusIndex === i && <div style={{ padding: '20px 24px', background: 'var(--overlay-bg)' }}><ol style={{ margin: 0, paddingLeft: 24, paddingRight: 12, lineHeight: 1.8, display: 'flex', flexDirection: 'column', gap: '8px' }}>{m.topics.map((t, j) => <li key={j} style={{ color: 'var(--text-secondary)' }}>{t}</li>)}</ol></div>}
+                <div key={i} style={{ border: '1px solid var(--glass)', borderRadius: 12, overflow: 'hidden', flexShrink: 0 }}>
+                  <div onClick={() => toggleSyllabusAccordion(i)} style={{ padding: '18px 24px', background: 'var(--glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', gap: 16 }}>
+                    <span style={{ flex: 1, lineHeight: 1.5, fontSize: '1.05rem', fontWeight: 500 }}>{m.title}</span>
+                    {expandedSyllabusIndex === i ? <ChevronUp size={18} style={{ flexShrink: 0 }} /> : <ChevronDown size={18} style={{ flexShrink: 0 }} />}
+                  </div>
+                  {expandedSyllabusIndex === i && (
+                    <div style={{ padding: '20px 24px', background: 'var(--overlay-bg)' }}>
+                      <ol style={{ margin: 0, paddingLeft: 24, paddingRight: 12, lineHeight: 1.8, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {m.topics.map((t, j) => <li key={j} style={{ color: 'var(--text-secondary)' }}>{t}</li>)}
+                      </ol>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+
           </div>
         </div>
       )}
