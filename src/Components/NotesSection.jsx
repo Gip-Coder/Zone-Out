@@ -924,36 +924,44 @@ export default function App() {
 
       {/* 6. Module Notes Modal (Large Size) */}
       {showNotesModal && activeCourse && activeModuleForNotes && (
-        <div style={modalOverlayStyle}>
-          <div style={{ ...modalContentStyle(isMobile), height: '85vh', width: isMobile ? '95%' : '80%', maxWidth: '1000px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+        <div style={{ ...modalOverlayStyle, zIndex: 5000 }}>
+          <div style={{ ...modalContentStyle(isMobile), padding: 0, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 140px)', marginTop: '60px', width: isMobile ? '95%' : '80%', maxWidth: '1000px', overflow: 'hidden' }}>
+            
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 28px', borderBottom: '1px solid var(--glass)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <FileText size={20} color="#f472b6" />
                 <h3 style={{ margin: 0 }}>{activeModuleForNotes} Notes</h3>
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => showToast("Notes Saved")} style={{ ...btnStyle, background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontSize: '0.8rem' }}><Save size={14} style={{ marginRight: 5 }} /> Auto-Saved</button>
-                <X onClick={() => setShowNotesModal(false)} style={{ cursor: 'pointer' }} />
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button onClick={() => showToast("Notes Saved")} style={{ ...btnStyle, background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontSize: '0.8rem', padding: '6px 12px' }}><Save size={14} style={{ marginRight: 5 }} /> Auto-Saved</button>
+                <X onClick={() => setShowNotesModal(false)} style={{ cursor: 'pointer', marginLeft: 8 }} />
               </div>
             </div>
-            <textarea
-              value={(activeCourse.moduleNotes && activeCourse.moduleNotes[activeModuleForNotes]) || ""}
-              onChange={(e) => handleSaveModuleNotes(e.target.value)}
-              placeholder={`Type notes for ${activeModuleForNotes}...`}
-              style={{
-                flex: 1,
-                background: 'var(--overlay-bg)',
-                border: '1px solid var(--glass)',
-                color: 'var(--text-primary)',
-                resize: 'none',
-                padding: '20px',
-                borderRadius: '8px',
-                fontSize: '1.1rem',
-                lineHeight: '1.6',
-                outline: 'none',
-                fontFamily: 'inherit'
-              }}
-            />
+
+            {/* Scrollable Text Area */}
+            <div style={{ flex: 1, padding: '24px 28px', display: 'flex', flexDirection: 'column' }}>
+              <textarea
+                className="custom-scrollbar"
+                value={(activeCourse.moduleNotes && activeCourse.moduleNotes[activeModuleForNotes]) || ""}
+                onChange={(e) => handleSaveModuleNotes(e.target.value)}
+                placeholder={`Type notes for ${activeModuleForNotes}...`}
+                style={{
+                  flex: 1,
+                  background: 'var(--overlay-bg)',
+                  border: '1px solid var(--glass)',
+                  color: 'var(--text-primary)',
+                  resize: 'none',
+                  padding: '24px',
+                  borderRadius: '12px',
+                  fontSize: '1.05rem',
+                  lineHeight: '1.6',
+                  outline: 'none',
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
+
           </div>
         </div>
       )}
