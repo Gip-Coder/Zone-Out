@@ -227,7 +227,7 @@ export default function App() {
     const modules = [];
     let current = null;
     for (const line of lines) {
-      const isHeading = /^(Module|Chapter|Unit|Part)\s*\d*[.:]?\s*.+$/i.test(line) || /^#+\s+.+/.test(line) || /^\d+[.)]\s+[A-Z]/.test(line);
+      const isHeading = /^(Module|Chapter|Unit|Part)\s*\d*[.:]?\s*.+$/i.test(line) || /^#+\s+.+/.test(line) || /^\d+\s*[-.)]\s+[A-Z]/i.test(line);
       if (isHeading && line.length < 120) {
         if (current) modules.push(current);
         current = { title: line.replace(/^#+\s*/, ""), topics: [] };
@@ -237,27 +237,65 @@ export default function App() {
       }
     }
     if (current) modules.push(current);
-    if (modules.length === 0) return [{ title: "General", topics: lines.slice(0, 20).map((l) => l.substring(0, 80)) }];
+
+    // If no headings were found, it might be a simple pasted list of names (old Manual mode) or a blob
+    if (modules.length === 0) {
+      const avgLength = lines.length ? lines.reduce((acc, l) => acc + l.length, 0) / lines.length : 0;
+      // If it looks like a list of module titles (short lines, not a big paragraph of text)
+      if (avgLength < 80 && lines.length <= 40) {
+        return lines.map(line => ({ title: line, topics: ["Review this module"] }));
+      }
+      // Otherwise fallback to a single unstructured module
+      return [{ title: "General", topics: lines.slice(0, 20).map((l) => l.substring(0, 80)) }];
+    }
     return modules;
   };
 
-  /** Tabular / CO (Course Outcome) style syllabus parser. */
+  /** Tabular / CO / PDF style syllabus parser. */
   const improvedManualParse = (text) => {
     if (!text || !text.trim()) return [];
-    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const lines = text.split(/\r?\n/).map((l) => l.trim().replace(/\s{2,}/g, ' ')).filter(Boolean);
     const modules = [];
     let current = null;
+    
+    // Check if the document has explicit markers like "Module 1", "Module:1", "Unit 2"
+    const hasExplicitModules = lines.some(l => /^(?:Module|Unit|Chapter|Part)[\s-:]*\d+/i.test(l));
+
     lines.forEach((line) => {
-      const moduleMatch = line.match(/^\d+\s*-\s*.+?- CO:/i);
-      const topicMatch = line.match(/^\d+\s*-\s*(.+)$/);
-      if (moduleMatch) {
+      // Stop capturing topics if we hit the bibliography or standard metadata sections often found at the bottom of a syllabus
+      if (/^(Total Lecture hours|Text\s*Books?|Reference\s*Books?|Mode of Evaluation|Course Objectives?|Course Outcomes?)/i.test(line)) {
+         if (current) modules.push(current);
+         current = null;
+         return; // skip line
+      }
+
+      // Looks for "1 - Intro - CO: 1", etc.
+      const isCoModule = /^\d+\s*[-.]+\s*.+?(?:\bCO\s*[:\s]\s*\d+)/i.test(line);
+      
+      let isStandardHeading = false;
+      if (hasExplicitModules) {
+        // If explicit modules exist,ONLY trust explicit labels to avoid falsely matching "1. Course outcome"
+        isStandardHeading = /^(?:Module|Unit|Chapter|Part)[\s-:]*\d+[.:]?\s*(.*)/i.test(line) || /^#+\s+(.+)/.test(line);
+      } else {
+        // Fallback to trusting any leading number format
+        isStandardHeading = /^(?:Module|Unit|Chapter|Part)[\s-:]*\d+[.:]?\s*(.*)/i.test(line) || /^#+\s+(.+)/.test(line) || /^\d+\s*[-.)]\s+[A-Z]/i.test(line);
+      }
+
+      if (isCoModule || isStandardHeading) {
         if (current) modules.push(current);
-        current = { title: line.split("\t")[0].trim(), topics: [] };
-      } else if (topicMatch && current) {
-        const topic = topicMatch[1].split("\t")[0].trim();
-        if (topic) current.topics.push(topic);
+        // Clean title: remove trailing CO stuff, and optionally trailing "X hours"
+        let title = line.replace(/[-–\s]*CO[:\s]*\d+.*$/i, "").trim();
+        title = title.replace(/\s+\d+\s*hours?$/i, "").trim();
+        current = { title: title, topics: [] };
+      } else if (current) {
+        // Remove leading dashes, dots, or numbers if it's a list item
+        const topic = line.replace(/^[\d•*\-.)]+\s*/, "").trim();
+        if (topic.length > 3 && !/^(hours|credits|marks|page|syllabus|pre-requisite)/i.test(topic)) {
+          current.topics.push(topic);
+        }
       }
     });
+    
     if (current) modules.push(current);
     return modules;
   };
@@ -294,9 +332,19 @@ export default function App() {
     for (let i = 1; i <= Math.min(pdf.numPages, 15); i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      text += content.items.map(item => item.str).join(" ") + "\n";
+      
+      let lastY = -1;
+      content.items.forEach(item => {
+        // If Y coordinate changes, it's a new line
+        if (lastY !== item.transform[5] && lastY !== -1) {
+          text += "\n";
+        }
+        text += item.str + " ";
+        lastY = item.transform[5];
+      });
+      text += "\n\n";
     }
-    return text;
+    return text.replace(/\s+\n/g, "\n");
   };
 
   // --- TIMER LOGIC ---
@@ -509,19 +557,7 @@ export default function App() {
       else text = rawSyllabusText || "";
       text = (text || "").trim();
 
-      if (syllabusMode === "manual") {
-        const lines = manualModuleLines.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-        const finalModules = lines.length ? lines.map((t) => ({ title: t, topics: ["Review this module"] })) : [{ title: "General", topics: ["Overview"] }];
-        const newCourse = { id: Date.now(), code: newCode.trim().toUpperCase(), name: newName.trim(), syllabus: "", modules: finalModules, files: {}, moduleNotes: {} };
-        newCourse.modules.forEach(m => { newCourse.files[m.title] = []; newCourse.moduleNotes[m.title] = ""; });
-        setCourses(prev => [...prev, newCourse]);
-        await dbAPI.save(STORE_COURSES, newCourse);
-        resetForm();
-        setManualModuleLines("");
-        showToast("Course Added Successfully");
-        setIsProcessing(false);
-        return;
-      }
+
 
       if (!text) {
         showToast("No syllabus text found.", "error");
@@ -660,7 +696,7 @@ export default function App() {
   };
 
   const handleDeleteCourse = (id) => {
-    setConfirmConfig({ title: "Delete Course?", message: "This removes data permanently.", onConfirm: async () => { setCourses(prev => prev.filter(c => c.id !== id)); await dbAPI.delete(STORE_COURSES, id); if (activeCourseId === id) setView('dashboard'); showToast("Deleted"); setConfirmConfig(null); } });
+    setConfirmConfig({ title: "Delete Course?", message: "This removes data permanently.", onConfirm: async () => { if (activeCourseId === id) { setView('dashboard'); setActiveCourseId(null); } setCourses(prev => prev.filter(c => c.id !== id)); await dbAPI.delete(STORE_COURSES, id); showToast("Deleted"); setConfirmConfig(null); } });
   };
 
   const handleDeleteFile = (cid, mt, fid) => {
@@ -834,7 +870,6 @@ export default function App() {
             <div style={{ display: 'flex', gap: 10, margin: '15px 0', flexWrap: 'wrap' }}>
               <span onClick={() => setSyllabusMode('pdf')} style={{ color: syllabusMode === 'pdf' ? '#f472b6' : 'grey', cursor: 'pointer' }}>PDF Upload</span>
               <span onClick={() => setSyllabusMode('text')} style={{ color: syllabusMode === 'text' ? '#f472b6' : 'grey', cursor: 'pointer' }}>Paste Text</span>
-              <span onClick={() => setSyllabusMode('manual')} style={{ color: syllabusMode === 'manual' ? '#f472b6' : 'grey', cursor: 'pointer' }}>Manual (no AI)</span>
             </div>
             {syllabusMode === 'pdf' ? (
               <div style={dropZoneStyle}>
@@ -843,15 +878,10 @@ export default function App() {
                   {isProcessing ? <div style={{ display: 'flex', gap: '10px' }}><Loader className="spin-anim" /> {statusMsg}</div> : "Upload PDF"}
                 </label>
               </div>
-            ) : syllabusMode === 'manual' ? (
-              <>
-                <textarea placeholder="Module names (one per line). No PDF or AI needed." value={manualModuleLines} onChange={e => setManualModuleLines(e.target.value)} style={{ ...inputStyle, height: 100, resize: 'none' }} />
-                <button onClick={() => handleCreateCourse()} disabled={isProcessing} style={{ ...primaryBtnStyle, width: '100%', marginTop: 15 }}>{isProcessing ? <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}><Loader className="spin-anim" /> {statusMsg}</div> : 'Create course'}</button>
-              </>
             ) : (
               <>
-                <textarea placeholder="Paste syllabus text..." value={rawSyllabusText} onChange={e => setRawSyllabusText(e.target.value)} style={{ ...inputStyle, height: 100, resize: 'none' }} />
-                <button onClick={() => handleCreateCourse()} disabled={isProcessing} style={{ ...primaryBtnStyle, width: '100%', marginTop: 15 }}>{isProcessing ? <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}><Loader className="spin-anim" /> {statusMsg}</div> : 'Create'}</button>
+                <textarea placeholder="Paste full syllabus text or list module names block..." value={rawSyllabusText} onChange={e => setRawSyllabusText(e.target.value)} style={{ ...inputStyle, height: 100, resize: 'none' }} />
+                <button onClick={() => handleCreateCourse()} disabled={isProcessing} style={{ ...primaryBtnStyle, width: '100%', marginTop: 15 }}>{isProcessing ? <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}><Loader className="spin-anim" /> {statusMsg}</div> : 'Create course'}</button>
               </>
             )}
           </div>
@@ -860,15 +890,17 @@ export default function App() {
 
       {/* 5. Syllabus Modal */}
       {showSyllabusModal && activeCourse && (
-        <div style={modalOverlayStyle}>
-          <div style={{ ...modalContentStyle(isMobile), height: '80vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}><h3>Syllabus</h3><X onClick={() => setShowSyllabusModal(false)} style={{ cursor: 'pointer' }} /></div>
-            {activeCourse.modules.map((m, i) => (
-              <div key={i} style={{ marginBottom: 10, border: '1px solid var(--glass)', borderRadius: 8 }}>
-                <div onClick={() => toggleSyllabusAccordion(i)} style={{ padding: 15, background: 'var(--glass)', display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}><span>{m.title}</span>{expandedSyllabusIndex === i ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
-                {expandedSyllabusIndex === i && <div style={{ padding: 15, background: 'var(--overlay-bg)' }}><ol style={{ margin: 0, paddingLeft: 20 }}>{m.topics.map((t, j) => <li key={j}>{t}</li>)}</ol></div>}
-              </div>
-            ))}
+        <div style={{ ...modalOverlayStyle, zIndex: 5000 }}>
+          <div className="custom-scrollbar" style={{ ...modalContentStyle(isMobile), maxHeight: 'calc(100vh - 100px)', overflowY: 'auto', maxWidth: '750px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}><h3 style={{ margin: 0 }}>Syllabus</h3><X onClick={() => setShowSyllabusModal(false)} style={{ cursor: 'pointer' }} /></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {activeCourse.modules.map((m, i) => (
+                <div key={i} style={{ border: '1px solid var(--glass)', borderRadius: 12, overflow: 'hidden' }}>
+                  <div onClick={() => toggleSyllabusAccordion(i)} style={{ padding: '18px 24px', background: 'var(--glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', gap: 16 }}><span style={{ flex: 1, lineHeight: 1.5, fontSize: '1.05rem', fontWeight: 500 }}>{m.title}</span>{expandedSyllabusIndex === i ? <ChevronUp size={18} style={{ flexShrink: 0 }} /> : <ChevronDown size={18} style={{ flexShrink: 0 }} />}</div>
+                  {expandedSyllabusIndex === i && <div style={{ padding: '20px 24px', background: 'var(--overlay-bg)' }}><ol style={{ margin: 0, paddingLeft: 24, paddingRight: 12, lineHeight: 1.8, display: 'flex', flexDirection: 'column', gap: '8px' }}>{m.topics.map((t, j) => <li key={j} style={{ color: 'var(--text-secondary)' }}>{t}</li>)}</ol></div>}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -927,7 +959,7 @@ export default function App() {
       )}
 
       {/* --- HEADER --- */}
-      {view === 'course-detail' ? (
+      {view === 'course-detail' && activeCourse ? (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexShrink: 0, background: 'var(--bg-secondary)', border: '1px solid var(--glass)', padding: '12px 20px', borderRadius: 12, boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <ArrowLeft onClick={() => setView('dashboard')} style={{ cursor: 'pointer' }} size={20} />
@@ -993,7 +1025,7 @@ export default function App() {
           </>
         )}
 
-        {view === 'course-detail' && (
+        {view === 'course-detail' && activeCourse && (
           <>
             {/* MODULE LIST */}
             {activeCourse.modules.map((mod, i) => (

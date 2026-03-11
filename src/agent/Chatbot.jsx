@@ -136,7 +136,7 @@ export default function Chatbot({ brain, isOpen, onToggle, placeholder = "Ask an
             </div>
           </div>
 
-          <div style={messagesStyle}>
+          <div style={messagesStyle} className="chatbot-messages-container">
             {messages.map((msg, i) => (
               <div
                 key={i}
@@ -213,6 +213,19 @@ export default function Chatbot({ brain, isOpen, onToggle, placeholder = "Ask an
         @keyframes chatbot-pulse {
           0%, 100% { opacity: 0.4; transform: scale(0.9); }
           50% { opacity: 1; transform: scale(1.1); }
+        }
+        .chatbot-messages-container::-webkit-scrollbar {
+          width: 6px;
+        }
+        .chatbot-messages-container::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .chatbot-messages-container::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
+        }
+        .chatbot-messages-container::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
         }
       `}</style>
     </div>

@@ -243,6 +243,7 @@
     }
 
     /* ================= GLOBALLY THEMED SCROLLBARS FOR SCROLLABLE AREAS ================= */
+    ::-webkit-scrollbar,
     .main-content::-webkit-scrollbar,
     .sidebar-nav::-webkit-scrollbar,
     .custom-scrollbar::-webkit-scrollbar {
@@ -250,12 +251,14 @@
         height: 3px;
     }
 
+    ::-webkit-scrollbar-track,
     .main-content::-webkit-scrollbar-track,
     .sidebar-nav::-webkit-scrollbar-track,
     .custom-scrollbar::-webkit-scrollbar-track {
         background: transparent;
     }
 
+    ::-webkit-scrollbar-thumb,
     .main-content::-webkit-scrollbar-thumb,
     .sidebar-nav::-webkit-scrollbar-thumb,
     .custom-scrollbar::-webkit-scrollbar-thumb {
@@ -263,6 +266,7 @@
         border-radius: 10px;
     }
 
+    ::-webkit-scrollbar-thumb:hover,
     .main-content::-webkit-scrollbar-thumb:hover,
     .sidebar-nav::-webkit-scrollbar-thumb:hover,
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
