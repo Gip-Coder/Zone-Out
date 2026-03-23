@@ -1,19 +1,18 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ListTodo, Book, Bot, Layers, TrendingUp, Users, FolderOpen, Settings, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, ListTodo, Book, Layers, TrendingUp, Users, FolderOpen, Settings, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import './Sidebar.css';
 
 const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/timeline', label: 'Timeline', icon: ListTodo },
     { path: '/course-vault', label: 'Course Vault', icon: Book },
-    { path: '/ai', label: 'AI Assistant', icon: Bot },
+    { path: '/study-groups', label: 'Study Groups', icon: Users },
 ];
 
 const placeholderItems = [
     { path: '/flashcards', label: 'Flashcards', icon: Layers },
     { path: '/progress', label: 'Progress', icon: TrendingUp },
-    { path: '/study-groups', label: 'Study Groups', icon: Users },
     { path: '/resources', label: 'Resources', icon: FolderOpen },
     { path: '/settings', label: 'Settings', icon: Settings },
     { path: '/profile', label: 'Profile', icon: User },

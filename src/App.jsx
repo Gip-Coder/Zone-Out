@@ -21,8 +21,7 @@ import FlashcardsPage from './pages/FlashcardsPage';
 import ProgressPage from './pages/ProgressPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
-
-
+import StudyGroupsPage from './pages/StudyGroupsPage';
 export default function App() {
   const { info: toastInfo } = useContext(ToastContext);
 
@@ -224,7 +223,7 @@ export default function App() {
             <Route path="/ai" element={<AIPage />} />
             <Route path="/flashcards" element={<FlashcardsPage />} />
             <Route path="/progress" element={<ProgressPage />} />
-            <Route path="/study-groups" element={<PlaceholderPage title="Study Groups" />} />
+            <Route path="/study-groups" element={<StudyGroupsPage />} />
             <Route path="/resources" element={<PlaceholderPage title="Resources" />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
