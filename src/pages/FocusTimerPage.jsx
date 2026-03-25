@@ -1,5 +1,5 @@
 import React from 'react';
-import Timer from '../Components/Timer';
+import Timer from '../components/Timer';
 
 export default function FocusTimerPage({ focusTime, setFocusTime, isFocusRunning, setIsFocusRunning, onSessionComplete }) {
   return (

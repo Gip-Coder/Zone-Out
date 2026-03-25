@@ -1,5 +1,5 @@
 import React from 'react';
-import StudyGoals from '../Components/StudyGoals';
+import StudyGoals from '../components/StudyGoals';
 
 export default function TimelinePage({ goals, setGoals }) {
   return (
