@@ -19,12 +19,8 @@ export function ProgressProvider({ children }) {
   };
 
   const refreshProgress = useCallback(async () => {
-    // Don't attempt to fetch if user isn't logged in
     const token = localStorage.getItem("token");
-    if (!token) {
-      console.log("[ProgressContext] No auth token, skipping fetch.");
-      return;
-    }
+    if (!token) return;
 
     try {
       const data = await progressService.fetchProgress();
@@ -34,33 +30,31 @@ export function ProgressProvider({ children }) {
         
         setProgressData({
           focus: {
-            goalMinutes: focus.goalMinutes,
-            minutesCompleted: focus.minutesCompleted,
-            percentage: calculatePercentage(focus.minutesCompleted, focus.goalMinutes)
+            goalMinutes: focus?.goalMinutes || 0,
+            minutesCompleted: focus?.minutesCompleted || 0,
+            percentage: calculatePercentage(focus?.minutesCompleted, focus?.goalMinutes)
           },
           goals: {
-            completed: goals.completed,
-            total: goals.total,
-            percentage: calculatePercentage(goals.completed, goals.total)
+            completed: goals?.completed || 0,
+            total: goals?.total || 0,
+            percentage: calculatePercentage(goals?.completed, goals?.total)
           },
           modules: {
-            completed: modules.completed,
-            total: modules.total,
-            percentage: calculatePercentage(modules.completed, modules.total)
+            completed: modules?.completed || 0,
+            total: modules?.total || 0,
+            percentage: calculatePercentage(modules?.completed, modules?.total)
           },
           loading: false,
           error: null
         });
-        
-        console.log("[ProgressContext] Data refreshed:", {
-          focus: `${focus.minutesCompleted}/${focus.goalMinutes} min`,
-          goals: `${goals.completed}/${goals.total}`,
-          modules: `${modules.completed}/${modules.total}`
-        });
       }
     } catch (error) {
-      console.error("[ProgressContext] Failed to fetch progress:", error);
-      setProgressData(prev => ({ ...prev, loading: false, error: error.message }));
+      // Silently handle 404 (endpoints not deployed yet) — don't spam console
+      const is404 = error?.message?.includes('Not Found') || error?.message?.includes('404');
+      if (!is404) {
+        console.warn("[ProgressContext] Could not fetch progress:", error.message);
+      }
+      setProgressData(prev => ({ ...prev, loading: false, error: null }));
     }
   }, []);
 
@@ -75,11 +69,11 @@ export function ProgressProvider({ children }) {
 
   const pushProgressEvent = useCallback(async (payload) => {
     try {
-      console.log("[ProgressContext] Sending event:", payload);
       await progressService.logProgressEvent(payload);
-      await refreshProgress(); // Auto-refresh after event
+      await refreshProgress();
     } catch (error) {
-      console.error("[ProgressContext] Error sending progress event:", error);
+      // Silent fallback — don't break user flow
+      console.warn("[ProgressContext] Progress event failed:", error.message);
     }
   }, [refreshProgress]);
 
@@ -88,7 +82,7 @@ export function ProgressProvider({ children }) {
       await progressService.setFocusGoal({ periodType, goalMinutes });
       await refreshProgress();
     } catch (error) {
-      console.error("[ProgressContext] Error updating focus goal:", error);
+      console.warn("[ProgressContext] Focus goal update failed:", error.message);
     }
   }, [refreshProgress]);
 
@@ -100,3 +94,4 @@ export function ProgressProvider({ children }) {
 }
 
 export const useProgressContext = () => useContext(ProgressContext);
+

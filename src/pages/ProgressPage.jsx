@@ -29,6 +29,12 @@ export default function ProgressPage() {
   };
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     const from = getDaysAgo(rangeDays);
     const to = getDaysAgo(0);
     setLoading(true);
@@ -39,8 +45,14 @@ export default function ProgressPage() {
         setEntries(Array.isArray(data) ? data : []);
       })
       .catch((e) => {
-        setError(e.message || "Failed to load progress");
-        setEntries([]);
+        // Don't show auth errors as page-level errors
+        const msg = e.message || "";
+        if (msg.includes("Unauthorized") || msg.includes("Invalid token") || msg.includes("401")) {
+          setEntries([]);
+        } else {
+          setError(msg || "Failed to load progress");
+          setEntries([]);
+        }
       })
       .finally(() => setLoading(false));
   }, [rangeDays]);
