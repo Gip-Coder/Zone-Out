@@ -239,12 +239,12 @@ export default function App() {
       const avgLength = lines.length ? lines.reduce((acc, l) => acc + l.length, 0) / lines.length : 0;
       // If it looks like a list of module titles (short lines, not a big paragraph of text)
       if (avgLength < 80 && lines.length <= 40) {
-        return lines.map(line => ({ title: line, topics: ["Review this module"] }));
+        return lines.map(line => ({ title: line, topics: ["Review this module"], completed: false }));
       }
       // Otherwise fallback to a single unstructured module
-      return [{ title: "General", topics: lines.slice(0, 20).map((l) => l.substring(0, 80)) }];
+      return [{ title: "General", topics: lines.slice(0, 20).map((l) => l.substring(0, 80)), completed: false }];
     }
-    return modules;
+    return modules.map(m => ({ ...m, completed: false }));
   };
 
   /** Tabular / CO / PDF style syllabus parser. */
@@ -407,6 +407,32 @@ export default function App() {
         break;
     }
   };
+  const toggleModuleCompletion = async (courseId, moduleIndex) => {
+    const updated = courses.map(c => {
+      if (c.id !== courseId) return c;
+      const newModules = [...c.modules];
+      newModules[moduleIndex] = { ...newModules[moduleIndex], completed: !newModules[moduleIndex].completed };
+      return { ...c, modules: newModules };
+    });
+    setCourses(updated);
+    const course = updated.find(c => c.id === courseId);
+    await dbAPI.save(STORE_COURSES, course);
+
+    // Calculate new global module counts
+    const totalModules = updated.reduce((sum, c) => sum + (c.modules?.length || 0), 0);
+    const completedModules = updated.reduce((sum, c) => 
+      sum + (c.modules?.filter(m => m.completed).length || 0), 0
+    );
+
+    // Update global progress
+    if (pushProgressEvent) {
+      pushProgressEvent({
+        eventType: "module_updated",
+        value: { total: totalModules, completed: completedModules }
+      });
+    }
+  };
+
   dispatchRef.current = handleAiAction;
 
   const handleSendMessage = async () => {
@@ -601,8 +627,17 @@ export default function App() {
 
       const newCourse = { id: Date.now(), code: newCode.trim().toUpperCase(), name: newName.trim(), syllabus: text, modules: finalModules, files: {}, moduleNotes: {} };
       newCourse.modules.forEach(m => { newCourse.files[m.title] = []; newCourse.moduleNotes[m.title] = ""; });
-      setCourses(prev => [...prev, newCourse]);
+      const updated = [...courses, newCourse];
+      setCourses(updated);
       await dbAPI.save(STORE_COURSES, newCourse);
+      
+      // Update progress totals
+      if (pushProgressEvent) {
+        const totalMod = updated.reduce((s, c) => s + (c.modules?.length || 0), 0);
+        const compMod = updated.reduce((s, c) => s + (c.modules?.filter(m => m.completed).length || 0), 0);
+        pushProgressEvent({ eventType: "module_updated", value: { total: totalMod, completed: compMod } });
+      }
+
       resetForm();
       setManualModuleLines("");
       showToast("Course Added Successfully");
@@ -703,7 +738,29 @@ export default function App() {
   };
 
   const handleDeleteCourse = (id) => {
-    setConfirmConfig({ title: "Delete Course?", message: "This removes data permanently.", onConfirm: async () => { if (activeCourseId === id) { setView('dashboard'); setActiveCourseId(null); } setCourses(prev => prev.filter(c => c.id !== id)); await dbAPI.delete(STORE_COURSES, id); showToast("Deleted"); setConfirmConfig(null); } });
+    setConfirmConfig({ 
+      title: "Delete Course?", 
+      message: "This removes data permanently.", 
+      onConfirm: async () => { 
+        if (activeCourseId === id) { 
+          setView('dashboard'); 
+          setActiveCourseId(null); 
+        } 
+        const updated = courses.filter(c => c.id !== id);
+        setCourses(updated); 
+        await dbAPI.delete(STORE_COURSES, id); 
+
+        // Update progress totals
+        if (pushProgressEvent) {
+          const totalMod = updated.reduce((s, c) => s + (c.modules?.length || 0), 0);
+          const compMod = updated.reduce((s, c) => s + (c.modules?.filter(m => m.completed).length || 0), 0);
+          pushProgressEvent({ eventType: "module_updated", value: { total: totalMod, completed: compMod } });
+        }
+
+        showToast("Deleted"); 
+        setConfirmConfig(null); 
+      } 
+    });
   };
 
   const handleDeleteFile = (cid, mt, fid) => {
@@ -1063,7 +1120,16 @@ export default function App() {
             {activeCourse.modules.map((mod, i) => (
               <div key={i} style={{ marginBottom: 10, border: '1px solid var(--glass)', borderRadius: 8 }}>
                 <div style={{ padding: 15, background: 'var(--glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div onClick={() => { setExpandedFileModuleIndex(i === expandedFileModuleIndex ? null : i) }} style={{ cursor: 'pointer', flex: 1 }}><strong>{mod.title}</strong></div>
+                  <div 
+                    onClick={() => toggleModuleCompletion(activeCourseId, i)} 
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}
+                  >
+                    {mod.completed ? <CheckCircle size={18} color="#10b981" /> : <div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid var(--text-secondary)' }} />}
+                    <strong style={{ opacity: mod.completed ? 0.5 : 1, textDecoration: mod.completed ? 'line-through' : 'none' }}>{mod.title}</strong>
+                  </div>
+                  <div onClick={() => { setExpandedFileModuleIndex(i === expandedFileModuleIndex ? null : i) }} style={{ cursor: 'pointer', padding: '0 10px', opacity: 0.5 }}>
+                    {expandedFileModuleIndex === i ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </div>
                   <div style={{ display: 'flex', gap: 5 }}>
                     <button onClick={() => openModuleNotes(mod.title)} style={{ ...btnStyle, padding: '4px 8px', fontSize: '0.7rem', color: 'var(--text-primary)' }}><FileText size={14} /> Notes</button>
                     <button onClick={() => handleGenerateQuiz(mod)} style={{ ...btnStyle, padding: '4px 8px', fontSize: '0.7rem', color: 'var(--accent-primary)' }}><Brain size={14} /> Quiz</button>

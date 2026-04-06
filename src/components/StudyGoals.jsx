@@ -78,6 +78,14 @@ export default function StudyGoals() {
 
         setGoals(prev => [data, ...prev]);
         setNewGoal("");
+        
+        // Update progress bar
+        if (pushProgressEvent) {
+          pushProgressEvent({
+            eventType: "goal_updated",
+            value: { goalId: data._id }
+          });
+        }
         return;
       } catch (error) {
         console.warn("API add failed, saving locally:", error.message);
@@ -106,11 +114,11 @@ export default function StudyGoals() {
           prev.map(g => g._id === goal._id ? updated : g)
         );
         
-        // Log event if turning TO true
-        if (updated.completed && pushProgressEvent) {
+        // Log event for any toggle (recalculates percentage)
+        if (pushProgressEvent) {
           pushProgressEvent({
-            eventType: "goal_completed",
-            value: { goalId: goal._id }
+            eventType: "goal_updated",
+            value: { goalId: goal._id, completed: updated.completed }
           });
         }
         
@@ -138,6 +146,14 @@ export default function StudyGoals() {
         setGoals(prev =>
           prev.filter(goal => goal._id !== id)
         );
+
+        // Update progress bar
+        if (pushProgressEvent) {
+          pushProgressEvent({
+            eventType: "goal_updated",
+            value: { goalId: id, deleted: true }
+          });
+        }
         return;
       } catch (error) {
         console.warn("API delete failed, removing locally:", error.message);

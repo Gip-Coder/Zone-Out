@@ -107,10 +107,15 @@ export const logProgressEvent = async (req, res) => {
         break;
 
       case "module_completed":
-        // For now, assuming basic increment
-        summary.modules.completed += 1;
-        if (summary.modules.total < summary.modules.completed) {
-          summary.modules.total = summary.modules.completed;
+      case "module_updated":
+        // Since modules are local-heavy, we allow the frontend to specify the new totals
+        if (value && value.total !== undefined) {
+          summary.modules.total = value.total;
+        }
+        if (value && value.completed !== undefined) {
+          summary.modules.completed = value.completed;
+        } else if (eventType === "module_completed") {
+          summary.modules.completed += 1;
         }
         break;
 

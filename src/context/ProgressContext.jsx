@@ -62,12 +62,23 @@ export function ProgressProvider({ children }) {
   }, []);
 
   // Initial load — only when token exists
+  // Initial load + Auth change detection
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      setProgressData(prev => ({ ...prev, loading: true }));
-      refreshProgress();
-    }
+    const handleAuthChange = () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        refreshProgress();
+      }
+    };
+    
+    handleAuthChange(); // Check on mount/update
+
+    // Since token is in localStorage, we can use storage event for cross-tab 
+    // OR we can just rely on the fact that App.jsx re-renders the tree when auth state changes.
+    // However, ProgressProvider is ABOVE App.jsx in main.jsx, so it won't re-render.
+    // We add a recurring check or a custom event if needed, but storage event helps.
+    window.addEventListener("storage", handleAuthChange);
+    return () => window.removeEventListener("storage", handleAuthChange);
   }, [refreshProgress]);
 
   const pushProgressEvent = useCallback(async (payload) => {

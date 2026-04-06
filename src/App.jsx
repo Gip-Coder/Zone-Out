@@ -13,6 +13,7 @@ import { Music, Timer as TimerIcon } from 'lucide-react';
 import { motion } from "framer-motion";
 import { Brain, Chatbot } from './agent';
 import Widget from './components/Widget';
+import { api } from './services/apiClient';
 import Dashboard from './pages/Dashboard';
 import TimelinePage from './pages/TimelinePage';
 import CourseVaultPage from './pages/CourseVaultPage';
@@ -118,13 +119,19 @@ export default function App() {
         break;
 
       case 'ADD_GOAL':
-        const newGoal = {
-          id: Date.now(),
-          title: action.title,
-          completed: false,
-          plan: action.plan || []
-        };
-        setGoals(prev => [...prev, newGoal]);
+        try {
+          const data = await api.post("/goals", {
+             text: action.title,
+             targetDate: action.date || "",
+             plan: action.plan || []
+          });
+          setGoals(prev => [data, ...prev]);
+          if (pushProgressEvent) {
+             pushProgressEvent({ eventType: "goal_updated", value: { goalId: data._id } });
+          }
+        } catch (e) {
+          console.warn("AI Goal Creation failed:", e.message);
+        }
         break;
 
       default:
