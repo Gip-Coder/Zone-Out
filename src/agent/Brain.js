@@ -122,7 +122,7 @@ export class Brain {
       const data = await api.post("/ai/chat", { message: userMessage, history });
       return data.response ?? "";
     } catch (error) {
-      console.error("AI chat failed", error);
+      console.warn("AI chat unavailable:", error.message);
       return "Hello! I am currently running offline, you might want to try again later.";
     }
   }

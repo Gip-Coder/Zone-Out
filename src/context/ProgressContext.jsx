@@ -49,10 +49,13 @@ export function ProgressProvider({ children }) {
         });
       }
     } catch (error) {
-      // Silently handle 404 (endpoints not deployed yet) — don't spam console
-      const is404 = error?.message?.includes('Not Found') || error?.message?.includes('404');
-      if (!is404) {
-        console.warn("[ProgressContext] Could not fetch progress:", error.message);
+      // Silently handle 404/401/network errors — don't spam console
+      const msg = error?.message || '';
+      const isIgnorable = msg.includes('Not Found') || msg.includes('404')
+        || msg.includes('401') || msg.includes('Invalid token')
+        || msg.includes('Unauthorized') || msg === 'Error';
+      if (!isIgnorable) {
+        console.warn("[ProgressContext] Could not fetch progress:", msg);
       }
       setProgressData(prev => ({ ...prev, loading: false, error: null }));
     }

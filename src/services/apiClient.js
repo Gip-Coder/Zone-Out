@@ -9,7 +9,10 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL
 console.log("API_BASE:", API_BASE);
 function getAuthHeaders() {
     const token = localStorage.getItem("token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    console.log("[DEBUG] Current Token:", token ? `${token.substring(0, 10)}...` : "MISSING");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    console.log("[DEBUG] Auth Headers:", headers);
+    return headers;
 }
 
 async function request(endpoint, options = {}) {
@@ -25,6 +28,7 @@ async function request(endpoint, options = {}) {
         ...options,
         headers,
     });
+    console.log(`[DEBUG] Request to ${url} returned status: ${response.status}`);
 
     // Handle standard HTTP errors
     if (!response.ok) {
@@ -34,16 +38,19 @@ async function request(endpoint, options = {}) {
             errorMsg = data.message || data.error || errorMsg;
         } catch (e) {
             // if not json, just use status text
-            errorMsg = response.statusText;
+            errorMsg = response.statusText || `HTTP ${response.status}`;
         }
 
         if (response.status === 401) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
-            window.location.href = "/";
+            // Avoid redirect loops — only redirect if not already on login
+            if (window.location.pathname !== "/") {
+                window.location.href = "/";
+            }
         }
 
-        throw new Error(errorMsg);
+        throw new Error(`${response.status}: ${errorMsg}`);
     }
 
     // Handle empty responses
