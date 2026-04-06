@@ -5,13 +5,16 @@ import App from './App'
 import './index.css'
 import { ThemeProvider } from './context/ThemeContext'
 import { ToastProvider } from './context/ToastContext'
+import { ProgressProvider } from './context/ProgressContext'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ThemeProvider>
     <ToastProvider>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <ProgressProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ProgressProvider>
     </ToastProvider>
   </ThemeProvider>
 )

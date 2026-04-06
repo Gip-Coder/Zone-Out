@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, CheckCircle, Circle } from 'lucide-react';
 import { api } from '../services/apiClient';
+import { useProgressContext } from '../context/ProgressContext';
 
 const STORAGE_KEY = "zoneout_goals";
 
@@ -19,6 +20,7 @@ export default function StudyGoals() {
   const [goals, setGoals] = useState([]);
   const [newGoal, setNewGoal] = useState("");
   const [useLocal, setUseLocal] = useState(false);
+  const { pushProgressEvent } = useProgressContext();
 
   // Persist goals to localStorage whenever they change
   useEffect(() => {
@@ -103,6 +105,15 @@ export default function StudyGoals() {
         setGoals(prev =>
           prev.map(g => g._id === goal._id ? updated : g)
         );
+        
+        // Log event if turning TO true
+        if (updated.completed && pushProgressEvent) {
+          pushProgressEvent({
+            eventType: "goal_completed",
+            value: { goalId: goal._id }
+          });
+        }
+        
         return;
       } catch (error) {
         console.warn("API toggle failed, updating locally:", error.message);

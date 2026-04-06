@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { ToastContext } from './context/ToastContext';
+import { useProgressContext } from './context/ProgressContext';
 import Timer from './components/Timer';
 import MusicPlayer from './components/MusicPlayer';
 import StudyGoals from './components/StudyGoals';
@@ -24,6 +25,7 @@ import SettingsPage from './pages/SettingsPage';
 import StudyGroupsPage from './pages/StudyGroupsPage';
 export default function App() {
   const { info: toastInfo } = useContext(ToastContext);
+  const { pushProgressEvent } = useProgressContext();
 
   // =============================
   // 🔐 AUTH STATE
@@ -179,10 +181,17 @@ export default function App() {
     const apiBase = import.meta.env.DEV ? "http://localhost:5000" : (import.meta.env.VITE_API_URL || "");
     if (!token || !apiBase || !durationMinutes) return;
     try {
+      // KEEP existing API logic
       await fetch(`${apiBase}/api/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ type: "focus", durationMinutes: Math.round(durationMinutes) }),
+      });
+
+      // ADD new progress system event
+      await pushProgressEvent({
+        eventType: "focus_session_completed",
+        value: { minutes: Math.round(durationMinutes) }
       });
     } catch (_) { }
   };

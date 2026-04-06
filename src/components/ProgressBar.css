@@ -1,0 +1,230 @@
+/* =========================================================================
+   PROGRESS BAR COMPONENT
+   ========================================================================= */
+
+.progress-bar-card {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-bar-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+
+.progress-bar-percentage {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.4s ease;
+}
+
+.progress-bar-percentage.progress-low {
+  color: var(--text-secondary);
+}
+
+.progress-bar-percentage.progress-mid {
+  color: var(--accent-secondary, #f472b6);
+}
+
+.progress-bar-percentage.progress-high {
+  color: var(--accent-primary, #a855f7);
+}
+
+/* Track */
+.progress-bar-track {
+  width: 100%;
+  height: 10px;
+  background: var(--glass, rgba(255, 255, 255, 0.06));
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Fill */
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.8s cubic-bezier(0.33, 1, 0.68, 1);
+  position: relative;
+}
+
+.progress-bar-fill.progress-low {
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.4), rgba(148, 163, 184, 0.7));
+}
+
+.progress-bar-fill.progress-mid {
+  background: linear-gradient(90deg, var(--accent-secondary, #f472b6), var(--accent-primary, #a855f7));
+  box-shadow: 0 0 12px rgba(244, 114, 182, 0.3);
+}
+
+.progress-bar-fill.progress-high {
+  background: linear-gradient(90deg, var(--accent-primary, #a855f7), var(--accent-secondary, #f472b6));
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.4), 0 0 40px rgba(168, 85, 247, 0.15);
+}
+
+/* Shimmer animation on high progress */
+.progress-bar-fill.progress-high::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  animation: progressShimmer 2s ease-in-out infinite;
+  border-radius: 999px;
+}
+
+@keyframes progressShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Subtitle */
+.progress-bar-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+  min-height: 1.2em;
+}
+
+.progress-bar-empty {
+  font-style: italic;
+  opacity: 0.6;
+}
+
+/* =========================================================================
+   PROGRESS SECTION (Dashboard)
+   ========================================================================= */
+
+.progress-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass);
+  border-radius: var(--radius-lg);
+  padding: 8px 0;
+  margin-bottom: 32px;
+  overflow: hidden;
+
+  opacity: 0;
+  transform: translateY(12px);
+  animation: progressFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+}
+
+.progress-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px 8px;
+}
+
+.progress-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.progress-section-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+}
+
+.progress-section-grid > .progress-bar-card {
+  border-right: 1px solid var(--glass);
+}
+
+.progress-section-grid > .progress-bar-card:last-child {
+  border-right: none;
+}
+
+@media (max-width: 767px) {
+  .progress-section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-section-grid > .progress-bar-card {
+    border-right: none;
+    border-bottom: 1px solid var(--glass);
+  }
+
+  .progress-section-grid > .progress-bar-card:last-child {
+    border-bottom: none;
+  }
+}
+
+@keyframes progressFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================================
+   FOCUS GOAL SETTER (inline)
+   ========================================================================= */
+
+.focus-goal-setter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.focus-goal-input {
+  width: 70px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--glass);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  outline: none;
+  text-align: center;
+}
+
+.focus-goal-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.15);
+}
+
+.focus-goal-btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: none;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.focus-goal-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.focus-goal-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}

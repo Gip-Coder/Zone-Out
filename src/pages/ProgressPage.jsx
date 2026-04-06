@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { TrendingUp, Clock, BookOpen, Loader } from "lucide-react";
+import { TrendingUp, Clock, BookOpen, Loader, Target } from "lucide-react";
 import { api } from "../services/apiClient";
+import { useProgressContext } from '../context/ProgressContext';
+import ProgressBar from '../components/ProgressBar';
 
 function getDaysAgo(n) {
   const d = new Date();
@@ -9,10 +11,22 @@ function getDaysAgo(n) {
 }
 
 export default function ProgressPage() {
+  const { focus, goals, modules, pushFocusGoalUpdate } = useProgressContext();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [rangeDays, setRangeDays] = useState(14);
+  const [focusGoalInput, setFocusGoalInput] = useState('');
+  const [showGoalSetter, setShowGoalSetter] = useState(false);
+
+  const handleSetFocusGoal = () => {
+    const mins = parseInt(focusGoalInput, 10);
+    if (mins > 0) {
+      pushFocusGoalUpdate('weekly', mins);
+      setFocusGoalInput('');
+      setShowGoalSetter(false);
+    }
+  };
 
   useEffect(() => {
     const from = getDaysAgo(rangeDays);
@@ -59,6 +73,64 @@ export default function ProgressPage() {
         Progress
       </h1>
       <p style={subStyle}>Focus timer usage and subject breakdown.</p>
+
+      {/* Backend-driven progress summary */}
+      <div style={{
+        ...cardStyle,
+        padding: '8px 0',
+        marginBottom: 28
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px 8px' }}>
+          <Target size={18} color="var(--accent-primary)" />
+          <span style={{ fontWeight: 700, fontSize: '1rem' }}>Current Progress</span>
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 0
+        }}>
+          <ProgressBar
+            title="Focus"
+            percentage={focus.percentage}
+            subtitle={
+              focus.goalMinutes > 0
+                ? `${focus.minutesCompleted} / ${focus.goalMinutes} min`
+                : showGoalSetter ? (
+                  <div className="focus-goal-setter">
+                    <input
+                      type="number"
+                      className="focus-goal-input"
+                      placeholder="min"
+                      value={focusGoalInput}
+                      onChange={(e) => setFocusGoalInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSetFocusGoal()}
+                      min="1"
+                    />
+                    <button className="focus-goal-btn" onClick={handleSetFocusGoal}>Set</button>
+                    <span className="focus-goal-label">min / week</span>
+                  </div>
+                ) : null
+            }
+            emptyText={
+              focus.goalMinutes === 0 && !showGoalSetter
+                ? <span onClick={() => setShowGoalSetter(true)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Set a focus goal to start tracking</span>
+                : undefined
+            }
+          />
+          <ProgressBar
+            title="Goals"
+            percentage={goals.percentage}
+            subtitle={goals.total > 0 ? `${goals.completed} / ${goals.total}` : undefined}
+            emptyText="No goals yet"
+          />
+          <ProgressBar
+            title="Modules"
+            percentage={modules.percentage}
+            subtitle={modules.total > 0 ? `${modules.completed} / ${modules.total}` : undefined}
+            emptyText="No modules"
+          />
+        </div>
+      </div>
 
       <div style={rangeStyle}>
         <span>Last </span>

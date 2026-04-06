@@ -1,27 +1,75 @@
 import { api } from "../services/apiClient";
 
 /**
- * Centralized AI Brain: control + access over the entire app, and raw generation for features (quiz, video, syllabus, etc.).
- * - think(): control flow — understands user intent and returns { text, action? }; runs dispatch when provided.
- * - chat(): conversational Q&A for student doubts (no app control).
+ * Centralized AI Brain: control + access over the entire app, and raw generation for features.
+ * - think(): control flow — understands user intent and returns { text, action? }.
+ * - chat(): conversational Q&A for student doubts.
  * - generateContent(): raw prompt/response.
- * All logic has been migrated back to the backend for security and modularity.
+ * All advanced AI logic has been migrated back to the backend. 
  */
 export class Brain {
   constructor(getAppState = null, dispatch = null) {
     this.getAppState = getAppState;
     this.dispatch = dispatch;
-    // No more client-side model initialization
+    
+    // Prevent rapid repeated calls (simple frontend rate guard)
+    this.lastRequestTime = 0;
   }
 
   /**
-   * Control mode: user says something → Brain returns reply text and optional action; dispatch runs the action.
-   * Relies entirely on backend /api/ai/think endpoint.
+   * Lightweight Intent Router (Step 8/9)
+   * Prevents unnecessary AI calls for short/rigid navigational commands.
+   */
+  shouldUseAI(input) {
+    const lower = input.toLowerCase().trim();
+    
+    if ((lower.includes("start") || lower.includes("set")) && lower.includes("timer")) {
+      const match = lower.match(/(\d+)\s*min/);
+      const minutes = match ? parseInt(match[1]) : 25;
+      return { useAI: false, text: `I've set a ${minutes} minute focus timer for you!`, action: { type: 'SET_TIMER', minutes } };
+    }
+    
+    if ((lower.includes("stop") || lower.includes("pause")) && lower.includes("timer")) {
+      return { useAI: false, text: "Timer paused.", action: { type: 'STOP_TIMER' } };
+    }
+
+    if (lower === "goals" || lower.includes("timeline")) {
+      return { useAI: false, text: "Taking you to your timeline and goals.", action: { type: 'NAVIGATE', view: 'goals' } };
+    }
+
+    if (lower === "vault" || lower === "courses" || lower === "notes") {
+      return { useAI: false, text: "Navigating to your course vault.", action: { type: 'NAVIGATE', view: 'notes' } };
+    }
+    
+    if (lower === "dashboard" || lower === "home") {
+      return { useAI: false, text: "Navigating to dashboard.", action: { type: 'NAVIGATE', view: 'dashboard' } };
+    }
+
+    return { useAI: true };
+  }
+
+  /**
+   * Control mode: user says something → Brain returns reply text and optional action.
    */
   async think(userInput) {
     if (!this.getAppState || !this.dispatch) {
       throw new Error("Brain.think() requires getAppState and dispatch.");
     }
+
+    // Rate Guard: prevent rapid spam
+    const now = Date.now();
+    if (now - this.lastRequestTime < 1000) {
+      return "Please wait a moment before sending another request.";
+    }
+    this.lastRequestTime = now;
+
+    // Intent routing
+    const intent = this.shouldUseAI(userInput);
+    if (!intent.useAI) {
+      if (intent.action) await this.dispatch(intent.action);
+      return intent.text;
+    }
+
     const state = this.getAppState();
     const context = this._buildControlContext(state);
 
@@ -31,26 +79,7 @@ export class Brain {
       return data.text || "";
     } catch (error) {
       console.error("AI think failed", error);
-      // Temporary manual brain fallback for control commands
-      const lower = userInput.toLowerCase();
-      
-      if ((lower.includes("start") || lower.includes("set")) && lower.includes("timer")) {
-         const match = lower.match(/(\d+)\s*min/);
-         const minutes = match ? parseInt(match[1]) : 25;
-         if (this.dispatch) await this.dispatch({ type: 'SET_TIMER', minutes });
-         return `(Fallback Mode): I've set a ${minutes} minute focus timer for you!`;
-      } else if ((lower.includes("stop") || lower.includes("pause")) && lower.includes("timer")) {
-         if (this.dispatch) await this.dispatch({ type: 'STOP_TIMER' });
-         return "(Fallback Mode): Timer paused.";
-      } else if (lower.includes("goal") || lower.includes("timeline")) {
-         if (this.dispatch) await this.dispatch({ type: 'NAVIGATE', view: 'goals' });
-         return "(Fallback Mode): Taking you to your timeline and goals.";
-      } else if (lower.includes("vault") || lower.includes("course") || lower.includes("notes")) {
-         if (this.dispatch) await this.dispatch({ type: 'NAVIGATE', view: 'notes' });
-         return "(Fallback Mode): Navigating to your course vault.";
-      }
-
-      return "I'm currently running on a fallback mock. I couldn't understand that command, but my main AI brain is temporarily offline!";
+      return "I couldn't understand that command, my brain is temporarily offline!";
     }
   }
 
@@ -65,24 +94,26 @@ export class Brain {
           name: state.activeCourse.name,
           id: state.activeCourse.id,
           modules: state.activeCourse.modules?.map((m) => m.title),
-          syllabus: state.activeCourse.syllabus?.substring?.(0, 500),
         }
         : null,
-      activeCourseId: state.activeCourseId,
       timer: {
         minutesLeft: state.focusTime != null ? Math.floor(state.focusTime / 60) : null,
         seconds: state.focusTime,
         running: state.isFocusRunning,
       },
-      goalsCount: state.goals?.length ?? 0,
     };
   }
 
   /**
-   * Chat mode: general student queries and doubts. No app control. Returns reply text.
-   * Calls backend /api/ai/chat.
+   * Chat mode: general Q&A.
    */
   async chat(userMessage, conversationHistory = []) {
+    const now = Date.now();
+    if (now - this.lastRequestTime < 1000) {
+      return "Slow down! Wait a second before asking a new question.";
+    }
+    this.lastRequestTime = now;
+
     const history = conversationHistory
       .filter((m) => m.role && m.content != null)
       .map((m) => ({ role: m.role, content: m.content }));
@@ -92,79 +123,39 @@ export class Brain {
       return data.response ?? "";
     } catch (error) {
       console.error("AI chat failed", error);
-      // Temporary manual brain fallback for conversational chat
-      const lower = userMessage.toLowerCase();
-      
-      if (lower.includes("hello") || lower.includes("hi")) {
-        return "(Fallback Bot): Hello there! My main AI connection is temporarily offline, but I'm here to help with basic tasks. How is your studying going?";
-      } else if (lower.includes("timer") || lower.includes("focus")) {
-        return "(Fallback Bot): It sounds like you want to use the timer. Try giving me a command like 'start a 25 minute timer'.";
-      } else if (lower.includes("goal") || lower.includes("plan")) {
-        return "(Fallback Bot): Need help managing goals? You can ask me to 'go to goals' or add them directly from the Timeline view.";
-      } else if (lower.includes("help")) {
-        return "(Fallback Bot): I'm your ZoneOut fallback assistant. I can help navigate the app or start timers (e.g., 'start a 10 min timer'). My advanced AI answers are currently unavailable.";
-      } else if (lower.includes("what is") || lower.includes("how to") || lower.includes("explain")) {
-        return "(Fallback Bot): That's a great question! Unfortunately, my advanced AI capabilities are currently unavailable due to an API issue, so I can't give a detailed explanation right now. Please check your course notes for now!";
-      } else {
-        return `(Fallback Bot): You said "${userMessage}". Since my main brain is offline, I can't process complex study queries at the moment, but your query has been logged!`;
-      }
+      return "Hello! I am currently running offline, you might want to try again later.";
     }
   }
 
   /**
-   * Raw generation (for quiz, video, syllabus, file sort, etc.).
-   * Now calls the secure backend '/ai/generate'.
-   * Returns a simulated "GenerateContentResult" by providing a `.response.text()` method.
+   * Raw generation for features.
    */
   async generateContent(prompt, options = {}) {
     try {
       const data = await api.post("/ai/generate", { prompt });
-      // Wrap it so existing frontend code calling `const text = result.response.text();` still works
       return {
-        response: {
-          text: () => data.response || ""
-        }
+        response: { text: () => data.response || "" }
       };
     } catch (error) {
       console.error("AI generate failed:", error);
-      // Format a robust robust fallback based on what they are trying to generate 
-      // This will prevent JSON parse errors for generate flows
       return {
-        response: {
-          text: () => "{}"
-        }
+        response: { text: () => "{}" }
       };
     }
   }
 
-  /**
-   * Parse JSON from model output (strips markdown and invalid trailing commas).
-   */
   cleanAndParseJSON(text) {
     try {
-      const start = text.indexOf("{");
-      const end = text.lastIndexOf("}");
-      if (start === -1 || end === -1) {
-        const alt = text.replace(/```json|```/g, "").trim();
-        const s = alt.indexOf("{");
-        const e = alt.lastIndexOf("}");
-        if (s === -1 || e === -1) throw new Error("No JSON found");
-        text = alt;
-        const cleaned = text
-          .substring(s, e + 1)
-          .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
-          .replace(/\\n/g, " ")
-          .replace(/,\s*}/g, "}")
-          .replace(/,\s*]/g, "]");
-        return JSON.parse(cleaned);
-      }
-      let cleaned = text
+      let cleaned = text.replace(/```json|```/g, "").trim();
+      const start = cleaned.indexOf("{");
+      const end = cleaned.lastIndexOf("}");
+      if (start === -1 || end === -1) throw new Error("No JSON found");
+      const jsonStr = cleaned
         .substring(start, end + 1)
-        .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
-        .replace(/\\n/g, " ")
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, " ")
         .replace(/,\s*}/g, "}")
         .replace(/,\s*]/g, "]");
-      return JSON.parse(cleaned);
+      return JSON.parse(jsonStr);
     } catch (e) {
       console.error("Brain.cleanAndParseJSON", e);
       throw e;

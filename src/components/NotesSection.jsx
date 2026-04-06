@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FileText, Plus, Trash2, X, UploadCloud, Loader, ChevronDown, ChevronUp, Table as TableIcon, MessageSquare, Send, ArrowLeft, Brain, Calendar, CheckSquare, Save, Youtube, Play, CheckCircle, Bot, Clock, Pause, RotateCcw } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Brain as BrainAgent } from '../agent';
+import { useProgressContext } from '../context/ProgressContext';
 
 // --- CONFIGURATION ---
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs`;
@@ -86,6 +87,7 @@ export default function App() {
   const [courses, setCourses] = useState([]);
   const [goals, setGoals] = useState([]);
   const [loadingDB, setLoadingDB] = useState(true);
+  const { pushProgressEvent } = useProgressContext();
 
   // --- RESPONSIVE STATE ---
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -198,14 +200,8 @@ export default function App() {
     []
   );
   const callBrainGenerate = async (prompt) => {
-    const result = await brain.generateContent(prompt, {
-      currentModelIndex,
-      setModelIndex: (idx) => {
-        setCurrentModelIndex(idx);
-        localStorage.setItem('sb_model_index', String(idx));
-      },
-    });
-    return brain.cleanAndParseJSON(result.response.text());
+    const text = await brain.generateWithRouter(prompt);
+    return brain.cleanAndParseJSON(text);
   };
 
   const resetForm = () => {
@@ -509,6 +505,17 @@ export default function App() {
   const deleteGoal = async (id) => {
     setGoals(prev => prev.filter(g => g.id !== id));
     await dbAPI.delete(STORE_GOALS, id);
+  };
+
+  // --- PROGRESS INTEGRATION: MODULE COMPLETION ---
+  const handleMarkModuleCompleted = async (moduleTitle) => {
+    console.log("[NotesSection] Marking module completed:", moduleTitle);
+    if (pushProgressEvent) {
+      await pushProgressEvent({
+        eventType: "module_completed",
+        value: { moduleId: moduleTitle }
+      });
+    }
   };
 
   const handleGenerateQuiz = async (module) => {
