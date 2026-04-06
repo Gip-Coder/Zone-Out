@@ -36,6 +36,13 @@ async function request(endpoint, options = {}) {
             // if not json, just use status text
             errorMsg = response.statusText;
         }
+
+        if (response.status === 401) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            window.location.href = "/";
+        }
+
         throw new Error(errorMsg);
     }
 

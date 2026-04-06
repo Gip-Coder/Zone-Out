@@ -20,7 +20,7 @@ if (isConfigured && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 } else if (!isConfigured) {
     console.warn("⚠️ Firebase is not configured! Please update your .env file with your Firebase credentials.");
-} ``
+}
 
 export const db = isConfigured ? firebase.firestore() : null;
 export const rtdb = isConfigured ? firebase.database() : null;
