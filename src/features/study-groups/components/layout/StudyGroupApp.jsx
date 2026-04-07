@@ -102,7 +102,7 @@ export const StudyGroupApp = () => {
                         content={
                             <div className="space-y-2">
                                 <h5 className="text-xl font-bold text-[var(--text-primary)]">Pomodoro Timer</h5>
-                                <a href="#" className="text-[var(--neon-blue)] hover:underline block text-sm">https://www.youtube.com/watch?v=Pomodoro-Timer</a>
+                                <a href="https://www.youtube.com/watch?v=Pomodoro-Timer" target="_blank" rel="noopener noreferrer" className="text-[var(--neon-blue)] hover:underline block text-sm">https://www.youtube.com/watch?v=Pomodoro-Timer</a>
                                 <div className="p-4 rounded-xl bg-[var(--glass)] border border-[var(--glass)] flex items-center gap-4">
                                     <div className="w-12 h-12 rounded bg-red-500/20 flex items-center justify-center text-red-500 shrink-0">
                                         <span className="font-bold">YT</span>

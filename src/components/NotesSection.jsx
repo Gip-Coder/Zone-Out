@@ -427,7 +427,7 @@ export default function App() {
     // Update global progress
     if (pushProgressEvent) {
       pushProgressEvent({
-        eventType: "module_updated",
+        eventType: "module_completed",
         value: { total: totalModules, completed: completedModules }
       });
     }
@@ -635,7 +635,7 @@ export default function App() {
       if (pushProgressEvent) {
         const totalMod = updated.reduce((s, c) => s + (c.modules?.length || 0), 0);
         const compMod = updated.reduce((s, c) => s + (c.modules?.filter(m => m.completed).length || 0), 0);
-        pushProgressEvent({ eventType: "module_updated", value: { total: totalMod, completed: compMod } });
+        pushProgressEvent({ eventType: "module_completed", value: { total: totalMod, completed: compMod } });
       }
 
       resetForm();
@@ -754,7 +754,7 @@ export default function App() {
         if (pushProgressEvent) {
           const totalMod = updated.reduce((s, c) => s + (c.modules?.length || 0), 0);
           const compMod = updated.reduce((s, c) => s + (c.modules?.filter(m => m.completed).length || 0), 0);
-          pushProgressEvent({ eventType: "module_updated", value: { total: totalMod, completed: compMod } });
+          pushProgressEvent({ eventType: "module_completed", value: { total: totalMod, completed: compMod } });
         }
 
         showToast("Deleted"); 

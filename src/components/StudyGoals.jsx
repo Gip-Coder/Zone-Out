@@ -117,7 +117,7 @@ export default function StudyGoals() {
         // Log event for any toggle (recalculates percentage)
         if (pushProgressEvent) {
           pushProgressEvent({
-            eventType: "goal_updated",
+            eventType: "goal_completed",
             value: { goalId: goal._id, completed: updated.completed }
           });
         }
@@ -150,7 +150,7 @@ export default function StudyGoals() {
         // Update progress bar
         if (pushProgressEvent) {
           pushProgressEvent({
-            eventType: "goal_updated",
+            eventType: "goal_completed",
             value: { goalId: id, deleted: true }
           });
         }

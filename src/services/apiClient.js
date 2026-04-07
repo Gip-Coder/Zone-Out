@@ -3,57 +3,52 @@
  * Handles base URLs, Auth headers (Bearer tokens), and JSON serialization.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL
-    ? `${import.meta.env.VITE_API_BASE_URL}/api`
-    : (import.meta.env.DEV ? "http://localhost:5000/api" : "https://zone-out.onrender.com/api");
-console.log("API_BASE:", API_BASE);
+const API_HOST = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://localhost:5000" : "https://zone-out.onrender.com");
+
 function getAuthHeaders() {
     const token = localStorage.getItem("token");
-    console.log("[DEBUG] Current Token:", token ? `${token.substring(0, 10)}...` : "MISSING");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    console.log("[DEBUG] Auth Headers:", headers);
-    return headers;
+    return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 async function request(endpoint, options = {}) {
-    const url = `${API_BASE}${endpoint}`;
-
-    const headers = {
+    const isExternal = endpoint.startsWith("http");
+    let url = endpoint;
+    let headers = {
         "Content-Type": "application/json",
-        ...getAuthHeaders(),
         ...options.headers,
     };
+
+    if (!isExternal) {
+        // Ensure endpoint starts with /api
+        const cleanPath = endpoint.startsWith("/api") ? endpoint : `/api${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+        url = `${API_HOST}${cleanPath}`;
+        // Only internal requests get the auth token
+        headers = { ...headers, ...getAuthHeaders() };
+    }
 
     const response = await fetch(url, {
         ...options,
         headers,
     });
-    console.log(`[DEBUG] Request to ${url} returned status: ${response.status}`);
 
-    // Handle standard HTTP errors
     if (!response.ok) {
         let errorMsg = "API Request Failed";
         try {
             const data = await response.json();
             errorMsg = data.message || data.error || errorMsg;
         } catch (e) {
-            // if not json, just use status text
             errorMsg = response.statusText || `HTTP ${response.status}`;
         }
 
-        if (response.status === 401) {
+        if (response.status === 401 && !isExternal) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
-            // Avoid redirect loops — only redirect if not already on login
-            if (window.location.pathname !== "/") {
-                window.location.href = "/";
-            }
+            if (window.location.pathname !== "/") window.location.href = "/";
         }
 
         throw new Error(`${response.status}: ${errorMsg}`);
     }
 
-    // Handle empty responses
     const text = await response.text();
     return text ? JSON.parse(text) : null;
 }

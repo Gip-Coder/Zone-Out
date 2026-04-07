@@ -127,7 +127,7 @@ export default function App() {
           });
           setGoals(prev => [data, ...prev]);
           if (pushProgressEvent) {
-             pushProgressEvent({ eventType: "goal_updated", value: { goalId: data._id } });
+             pushProgressEvent({ eventType: "goal_completed", value: { goalId: data._id } });
           }
         } catch (e) {
           console.warn("AI Goal Creation failed:", e.message);
@@ -184,18 +184,8 @@ export default function App() {
   const location = useLocation();
 
   const handleSessionComplete = async (durationMinutes) => {
-    const token = localStorage.getItem("token");
-    const apiBase = import.meta.env.DEV ? "http://localhost:5000" : (import.meta.env.VITE_API_URL || "");
-    if (!token || !apiBase || !durationMinutes) return;
+    if (!durationMinutes) return;
     try {
-      // KEEP existing API logic
-      await fetch(`${apiBase}/api/progress`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ type: "focus", durationMinutes: Math.round(durationMinutes) }),
-      });
-
-      // ADD new progress system event
       await pushProgressEvent({
         eventType: "focus_session_completed",
         value: { minutes: Math.round(durationMinutes) }

@@ -96,10 +96,11 @@ export function ProgressProvider({ children }) {
 
   const pushProgressEvent = useCallback(async (payload) => {
     try {
+      // Ensure we use the correct event names mapping if needed, 
+      // but the components should pass correct ones.
       await progressService.logProgressEvent(payload);
-      await refreshProgress();
+      await refreshProgress(); // Centralized refresh
     } catch (error) {
-      // Silent fallback — don't break user flow
       console.warn("[ProgressContext] Progress event failed:", error.message);
     }
   }, [refreshProgress]);
@@ -107,7 +108,7 @@ export function ProgressProvider({ children }) {
   const pushFocusGoalUpdate = useCallback(async (periodType, goalMinutes) => {
     try {
       await progressService.setFocusGoal({ periodType, goalMinutes });
-      await refreshProgress();
+      await refreshProgress(); // Centralized refresh
     } catch (error) {
       console.warn("[ProgressContext] Focus goal update failed:", error.message);
     }

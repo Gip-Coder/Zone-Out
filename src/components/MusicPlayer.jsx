@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import { Music, Check, LogIn, AlertCircle } from 'lucide-react';
 import { ToastContext } from '../context/ToastContext';
 import { useMusicAuth } from '../hooks/useMusicAuth';
+import { api } from '../services/apiClient';
 
 export default function MusicPlayer({ isPlaying, setIsPlaying }) {
   const { error: toastError, success: toastSuccess } = useContext(ToastContext) || {};
@@ -196,14 +197,12 @@ function YouTubePlaylistFetcher({ token }) {
   React.useEffect(() => {
     if (!token) return;
 
-    fetch('https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=10', {
+    api.get(`https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=10`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
     })
-      .then(res => res.json())
       .then(data => {
-        if (data.error) throw new Error(data.error.message);
         setPlaylists(data.items || []);
         setLoading(false);
       })
@@ -213,6 +212,7 @@ function YouTubePlaylistFetcher({ token }) {
         setLoading(false);
       });
   }, [token]);
+
 
   if (loading) return <div style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Loading your playlists...</div>;
   if (error) return <div style={{ color: '#ef4444', fontSize: '13px' }}>{error}</div>;
