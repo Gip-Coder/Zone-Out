@@ -1,8 +1,9 @@
 import { api } from './apiClient';
 
 export const progressService = {
-  fetchProgress: async () => {
-    return await api.get('/progress/summary');
+  fetchProgress: async (from, to) => {
+    const query = (from && to) ? `?from=${from}&to=${to}` : "";
+    return await api.get(`/progress/summary${query}`);
   },
   
   logProgressEvent: async (payload) => {

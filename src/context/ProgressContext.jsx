@@ -8,6 +8,12 @@ export function ProgressProvider({ children }) {
     focus: { goalMinutes: 0, minutesCompleted: 0, percentage: 0 },
     goals: { completed: 0, total: 0, percentage: 0 },
     modules: { completed: 0, total: 0, percentage: 0 },
+    stats: {
+      totalMinutes: 0,
+      sessionsCompleted: 0,
+      dailyBreakdown: [],
+      subjectBreakdown: []
+    },
     loading: false,
     error: null
   });
@@ -18,15 +24,16 @@ export function ProgressProvider({ children }) {
     return Math.min(Math.round(pct), 100);
   };
 
-  const refreshProgress = useCallback(async () => {
+  const refreshProgress = useCallback(async (from, to) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
     try {
-      const data = await progressService.fetchProgress();
+      const data = await progressService.fetchProgress(from, to);
       
       if (data && data.summary) {
         const { focus, goals, modules } = data.summary;
+        const { stats } = data;
         
         setProgressData({
           focus: {
@@ -43,6 +50,12 @@ export function ProgressProvider({ children }) {
             completed: modules?.completed || 0,
             total: modules?.total || 0,
             percentage: calculatePercentage(modules?.completed, modules?.total)
+          },
+          stats: {
+            totalMinutes: stats?.totalMinutes || 0,
+            sessionsCompleted: stats?.sessionsCompleted || 0,
+            dailyBreakdown: stats?.dailyBreakdown || [],
+            subjectBreakdown: stats?.subjectBreakdown || []
           },
           loading: false,
           error: null

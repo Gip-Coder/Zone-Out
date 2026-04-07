@@ -46,14 +46,48 @@ export const getProgress = async (req, res) => {
 // Returns all three progress types together for the user's current day/month/semester context
 export const getSummary = async (req, res) => {
   try {
-    const date = req.query.date || new Date().toISOString().split("T")[0];
+    const { from, to, date: queryDate } = req.query;
+    const date = to || queryDate || new Date().toISOString().split("T")[0];
+    
+    // 1. Fetch/Create today's (or 'to' date's) summary
     let summary = await ProgressSummary.findOne({ user: req.user, date });
-
     if (!summary) {
       summary = await ProgressSummary.create({ user: req.user, date });
     }
 
-    // Calculate independent percentages
+    // 2. Fetch Detailed Stats for range
+    let stats = {
+      totalMinutes: 0,
+      sessionsCompleted: 0,
+      dailyBreakdown: [],
+      subjectBreakdown: []
+    };
+
+    if (from && to) {
+      const entries = await Progress.find({
+        user: req.user,
+        type: "focus",
+        date: { $gte: from, $lte: to }
+      });
+
+      stats.sessionsCompleted = entries.length;
+      stats.totalMinutes = entries.reduce((s, e) => s + (e.durationMinutes || 0), 0);
+
+      // Aggregates
+      const byDate = {};
+      const bySub = {};
+      entries.forEach(e => {
+        const d = e.date;
+        const s = e.courseName || "General";
+        byDate[d] = (byDate[d] || 0) + (e.durationMinutes || 0);
+        bySub[s] = (bySub[s] || 0) + (e.durationMinutes || 0);
+      });
+
+      stats.dailyBreakdown = Object.entries(byDate).map(([date, minutes]) => ({ date, minutes }));
+      stats.subjectBreakdown = Object.entries(bySub).map(([subject, minutes]) => ({ subject, minutes }));
+    }
+
+    // 3. Calculate Independent Percentages for current day
     const focusProgressPercentage = summary.focus.goalMinutes > 0
       ? Math.round((summary.focus.minutesCompleted / summary.focus.goalMinutes) * 100)
       : 0;
@@ -68,6 +102,7 @@ export const getSummary = async (req, res) => {
 
     res.json({
       summary,
+      stats, // NEW: Detailed range stats
       percentages: {
         focusProgressPercentage: Math.min(focusProgressPercentage, 100),
         goalsProgressPercentage: Math.min(goalsProgressPercentage, 100),
