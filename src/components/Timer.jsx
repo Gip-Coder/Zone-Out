@@ -1,12 +1,27 @@
-import React, { useState, useEffect } from "react";
-import { Play, Pause, RotateCcw } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { RotateCcw } from "lucide-react";
 
-export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning, onSessionComplete, onTimerStart }) {
+const TICK_MS = 250;
+
+export default function Timer({
+  focusTime,
+  setFocusTime,
+  isRunning,
+  setIsRunning,
+  onSessionComplete,
+  onTimerStart,
+  sessionDuration: sessionDurationProp,
+  setSessionDuration: setSessionDurationProp,
+}) {
 
   const radius = 120;
   const circumference = 2 * Math.PI * radius;
 
-  const [sessionDuration, setSessionDuration] = useState(focusTime);
+  // The session length can be owned by the parent (so AI-set timers report the
+  // right duration) or fall back to local state.
+  const [localSessionDuration, setLocalSessionDuration] = useState(focusTime);
+  const sessionDuration = sessionDurationProp ?? localSessionDuration;
+  const setSessionDuration = setSessionDurationProp ?? setLocalSessionDuration;
 
   const [hoursInput, setHoursInput] = useState(
     Math.floor(focusTime / 3600)
@@ -17,41 +32,76 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
 
   const [isEditing, setIsEditing] = useState(false);
 
-  // ===============================
-  // Sync Inputs when focusTime changes externally (AI etc)
-  // ===============================
-  useEffect(() => {
+  // The h/m inputs are only visible in edit mode, so they are synced from the
+  // current time (which the AI may have changed) whenever edit mode opens.
+  const openEditor = () => {
     setHoursInput(Math.floor(focusTime / 3600));
     setMinutesInput(Math.floor((focusTime % 3600) / 60));
-  }, [focusTime]);
+    setIsEditing(true);
+  };
 
   // ===============================
   // TIMER ENGINE
+  // Counts down against a wall-clock deadline instead of decrementing once
+  // per interval tick: browsers throttle timers in background tabs, which made
+  // the old countdown run far slower than real time while the user studied
+  // in another tab.
   // ===============================
+  const deadlineRef = useRef(null);
+  const lastEmittedRef = useRef(focusTime);
+  // Latest callbacks/values for the interval, without restarting it each render
+  const callbacksRef = useRef({ onSessionComplete, sessionDuration, setFocusTime, setIsRunning });
   useEffect(() => {
-    let interval;
+    callbacksRef.current = { onSessionComplete, sessionDuration, setFocusTime, setIsRunning };
+  });
 
-    if (isRunning && focusTime > 0) {
-      interval = setInterval(() => {
-        setFocusTime(prev => prev - 1);
-      }, 1000);
+  // (Re)arm the deadline whenever the timer starts or its value is changed
+  // from outside the engine (manual set, AI command, reset).
+  useEffect(() => {
+    if (!isRunning) {
+      deadlineRef.current = null;
+      return;
     }
-
-    if (focusTime === 0 && isRunning) {
-      setIsRunning(false);
-      if (typeof onSessionComplete === "function") {
-        const minutes = Math.round((sessionDuration || 0) / 60);
-        if (minutes > 0) onSessionComplete(minutes);
-      }
+    if (deadlineRef.current === null || focusTime !== lastEmittedRef.current) {
+      deadlineRef.current = Date.now() + focusTime * 1000;
+      lastEmittedRef.current = focusTime;
     }
-
-    return () => clearInterval(interval);
   }, [isRunning, focusTime]);
+
+  useEffect(() => {
+    if (!isRunning) return;
+
+    const tick = () => {
+      if (deadlineRef.current === null) return;
+      const remaining = Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000));
+      const cb = callbacksRef.current;
+      if (remaining !== lastEmittedRef.current) {
+        lastEmittedRef.current = remaining;
+        cb.setFocusTime(remaining);
+      }
+      if (remaining === 0) {
+        deadlineRef.current = null;
+        cb.setIsRunning(false);
+        if (typeof cb.onSessionComplete === "function") {
+          const minutes = Math.round((cb.sessionDuration || 0) / 60);
+          if (minutes > 0) cb.onSessionComplete(minutes);
+        }
+      }
+    };
+
+    const interval = setInterval(tick, TICK_MS);
+    // Catch up immediately when the tab becomes visible again
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [isRunning]);
 
   const handleRingClick = () => {
     if (!isRunning && !isEditing) {
       // Open edit mode if stopped
-      setIsEditing(true);
+      openEditor();
     } else if (isRunning) {
       // Pause if running
       setIsRunning(false);
@@ -68,8 +118,8 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
   // ===============================
   const applyManualTime = () => {
 
-    const safeHours = Math.max(0, Math.min(hoursInput, 24));
-    const safeMinutes = Math.max(0, Math.min(minutesInput, 59));
+    const safeHours = Number.isFinite(hoursInput) ? Math.max(0, Math.min(hoursInput, 24)) : 0;
+    const safeMinutes = Number.isFinite(minutesInput) ? Math.max(0, Math.min(minutesInput, 59)) : 0;
 
     const totalSeconds = (safeHours * 3600) + (safeMinutes * 60);
 
@@ -114,6 +164,9 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
   return (
     <div style={{ display: "flex", justifyContent: "center" }}>
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={isRunning ? "Pause timer" : isEditing ? "Start timer" : "Edit timer"}
         style={{
           position: "relative",
           width: 320,
@@ -121,6 +174,13 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
           cursor: "pointer"
         }}
         onClick={handleRingClick}
+        onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleRingClick();
+          }
+        }}
       >
 
         {/* Glow */}
@@ -191,7 +251,7 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
             width: "100%"
           }}
         >
-          <div style={{ fontSize: "2rem", fontWeight: 700, fontFamily: "monospace" }}>
+          <div role="timer" aria-live="off" style={{ fontSize: "2rem", fontWeight: 700, fontFamily: "monospace" }}>
             {formatTime(focusTime)}
           </div>
 
@@ -203,7 +263,14 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
           {isEditing && (
             <div style={{ display: "flex", gap: 15, marginTop: 12 }}>
               <button
-                onClick={resetTimer}
+                type="button"
+                aria-label="Reset timer"
+                onClick={(e) => {
+                  // Without this the click bubbled to the ring, which
+                  // immediately restarted the timer after resetting it.
+                  e.stopPropagation();
+                  resetTimer();
+                }}
                 style={{
                   background: "var(--bg-secondary)",
                   border: "1px solid var(--glass)",
@@ -229,6 +296,7 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
                 type="number"
                 min="0"
                 max="24"
+                aria-label="Hours"
                 value={hoursInput}
                 onChange={(e) => setHoursInput(Number(e.target.value))}
                 style={manualInputStyle}
@@ -239,13 +307,14 @@ export default function Timer({ focusTime, setFocusTime, isRunning, setIsRunning
                 type="number"
                 min="0"
                 max="59"
+                aria-label="Minutes"
                 value={minutesInput}
                 onChange={(e) => setMinutesInput(Number(e.target.value))}
                 style={manualInputStyle}
               />
               <span>m</span>
 
-              <button onClick={applyManualTime} style={setBtnStyle}>
+              <button type="button" onClick={applyManualTime} style={setBtnStyle}>
                 Set
               </button>
             </div>

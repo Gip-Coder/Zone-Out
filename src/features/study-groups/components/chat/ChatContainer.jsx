@@ -77,7 +77,8 @@ export const ChatContainer = ({ currentUser }) => {
         let currentGroup = null;
 
         messages.forEach(msg => {
-            const msgTime = msg.timestamp?.toMillis ? msg.timestamp.toMillis() : Date.now();
+            // Pending messages have no server timestamp yet; group them with the previous one
+            const msgTime = msg.timestamp?.toMillis ? msg.timestamp.toMillis() : (currentGroup?.lastTime ?? 0);
             if (!currentGroup ||
                 currentGroup.senderId !== msg.senderId ||
                 (msgTime - currentGroup.lastTime > 60000)) { // Reduced to 1 min for tighter grouping

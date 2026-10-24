@@ -106,7 +106,8 @@
 
 .progress-bar-empty {
   font-style: italic;
-  opacity: 0.6;
+  /* Secondary token instead of extra opacity, which failed WCAG AA contrast */
+  color: var(--text-secondary);
 }
 
 /* =========================================================================

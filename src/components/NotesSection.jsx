@@ -1,30 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { FileText, Plus, Trash2, X, UploadCloud, Loader, ChevronDown, ChevronUp, Table as TableIcon, MessageSquare, Send, ArrowLeft, Brain, Calendar, CheckSquare, Save, Youtube, Play, CheckCircle, Bot, Clock, Pause, RotateCcw } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
+import { FileText, Plus, Trash2, X, UploadCloud, Loader, ChevronDown, ChevronUp, Table as TableIcon, Send, ArrowLeft, Brain, Calendar, CheckSquare, Save, Youtube, Play, CheckCircle, Bot } from 'lucide-react';
 import { Brain as BrainAgent } from '../agent';
+import { validateAction } from '../agent/actions';
 import { useProgressContext } from '../context/ProgressContext';
+import { dbAPI, STORE_COURSES, STORE_GOALS } from '../utils/studyVaultDb';
+import { localDateString } from '../utils/date';
+import { normalizeModules, normalizeQuiz, normalizePlan, normalizeVideoRec, validFileMatches, makeFileRecord, openStoredFile } from './notesSectionUtils';
 
 // --- CONFIGURATION ---
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs`;
-
-// --- DATABASE UTILITIES ---
-const DB_NAME = 'StudyBuddyVault';
-const DB_VERSION = 3;
-const STORE_COURSES = 'courses';
-const STORE_GOALS = 'goals';
-
-const openDB = () => {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains(STORE_COURSES)) db.createObjectStore(STORE_COURSES, { keyPath: 'id' });
-      if (!db.objectStoreNames.contains(STORE_GOALS)) db.createObjectStore(STORE_GOALS, { keyPath: 'id' });
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-};
+// pdfjsLib is loaded dynamically inside extractTextFromPDF to optimize bundle size
 
 function ManualFileSortModal({ files, courses, onAssign, onCancel, inputStyle, primaryBtnStyle, secondaryBtnStyle, modalOverlayStyle, modalContentStyle }) {
   const [assignments, setAssignments] = useState(() => files.map(f => ({ fileIndex: f.index, courseIndex: 0, moduleIndex: 0 })));
@@ -59,34 +43,11 @@ function ManualFileSortModal({ files, courses, onAssign, onCancel, inputStyle, p
   );
 }
 
-const dbAPI = {
-  getAll: async (storeName) => {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
-      req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error);
-    });
-  },
-  save: async (storeName, val) => {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const req = db.transaction(storeName, 'readwrite').objectStore(storeName).put(val);
-      req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error);
-    });
-  },
-  delete: async (storeName, id) => {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const req = db.transaction(storeName, 'readwrite').objectStore(storeName).delete(id);
-      req.onsuccess = () => resolve(); req.onerror = () => reject(req.error);
-    });
-  }
-};
-
-export default function App() {
+export default function NotesSection() {
   const [courses, setCourses] = useState([]);
   const [goals, setGoals] = useState([]);
   const [loadingDB, setLoadingDB] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const { pushProgressEvent } = useProgressContext();
 
   // --- RESPONSIVE STATE ---
@@ -105,7 +66,10 @@ export default function App() {
         setCourses(c);
         setGoals(g);
       }
-      catch (e) { console.error("DB Error", e); }
+      catch (e) {
+        console.error("DB Error", e);
+        setLoadError(e?.message || "Could not open your Course Vault storage.");
+      }
       finally { setLoadingDB(false); }
     };
     load();
@@ -149,18 +113,11 @@ export default function App() {
   const [videoRec, setVideoRec] = useState(null);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
 
-  // Focus Timer State
-  const [focusTime, setFocusTime] = useState(25 * 60);
-  const [isFocusRunning, setIsFocusRunning] = useState(false);
-  const focusIntervalRef = useRef(null);
-
   // Inputs
-  const [searchQuery, setSearchQuery] = useState("");
   const [syllabusMode, setSyllabusMode] = useState('pdf');
   const [newCode, setNewCode] = useState("");
   const [newName, setNewName] = useState("");
   const [rawSyllabusText, setRawSyllabusText] = useState("");
-  const [manualModuleLines, setManualModuleLines] = useState("");
 
   // Goal Inputs
   const [goalTitle, setGoalTitle] = useState("");
@@ -174,11 +131,13 @@ export default function App() {
   const [confirmConfig, setConfirmConfig] = useState(null);
   const [manualSortState, setManualSortState] = useState(null);
 
-  const [currentModelIndex, setCurrentModelIndex] = useState(() => {
-    return parseInt(localStorage.getItem('sb_model_index') || '0');
-  });
-
-  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+  const toastTimerRef = useRef(null);
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
+  };
+  useEffect(() => () => clearTimeout(toastTimerRef.current), []);
   const activeCourse = courses.find(c => c.id === activeCourseId);
 
   // --- CENTRALIZED BRAIN (all AI goes through here) ---
@@ -188,8 +147,6 @@ export default function App() {
     view,
     activeCourseId,
     activeCourse: activeCourse ? { id: activeCourse.id, name: activeCourse.name, modules: activeCourse.modules, syllabus: activeCourse.syllabus } : null,
-    focusTime,
-    isFocusRunning,
     goals,
   });
   const brain = useMemo(
@@ -209,11 +166,8 @@ export default function App() {
     setNewCode("");
     setNewName("");
     setRawSyllabusText("");
-    setManualModuleLines("");
     setStatusMsg("");
   };
-
-  const readFileAsUrl = (file) => URL.createObjectURL(file);
 
   // --- MANUAL FALLBACKS (when API key exhausted or AI fails) ---
   /** General heading-based parser (Module/Chapter/Unit, ##, numbered lines). */
@@ -298,7 +252,7 @@ export default function App() {
 
   const manualQuizFromModule = (module) => {
     const topics = module.topics?.length ? module.topics : ["key concept 1", "key concept 2", "key concept 3"];
-    const questions = topics.slice(0, 5).map((t, i) => ({
+    const questions = topics.slice(0, 5).map((t) => ({
       q: `What best describes "${t}" in ${module.title}?`,
       options: ["A key concept in this module.", "Not covered.", "See your notes for details.", "Review the syllabus."],
       answer: 0,
@@ -315,13 +269,15 @@ export default function App() {
       const dayOffset = Math.floor((i / Math.max(1, course.modules.length)) * daysTotal);
       const d = new Date(start);
       d.setDate(d.getDate() + dayOffset);
-      return { date: d.toISOString().split("T")[0], task: m.title, done: false };
+      return { date: localDateString(d), task: m.title, done: false };
     });
     if (plan.length === 0) plan.push({ date: targetDate, task: "Review course", done: false });
     return plan;
   };
 
   const extractTextFromPDF = async (file) => {
+    const pdfjsLib = await import('pdfjs-dist');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs`;
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let text = "";
@@ -343,41 +299,19 @@ export default function App() {
     return text.replace(/\s+\n/g, "\n");
   };
 
-  // --- TIMER LOGIC ---
-  useEffect(() => {
-    if (isFocusRunning && focusTime > 0) {
-      focusIntervalRef.current = setInterval(() => {
-        setFocusTime((prev) => prev - 1);
-      }, 1000);
-    } else if (focusTime === 0) {
-      setIsFocusRunning(false);
-      showToast("Focus Session Complete!");
-      clearInterval(focusIntervalRef.current);
-    }
-    return () => clearInterval(focusIntervalRef.current);
-  }, [isFocusRunning, focusTime]);
-
-  const toggleFocus = () => setIsFocusRunning(!isFocusRunning);
-  const resetFocus = () => { setIsFocusRunning(false); setFocusTime(25 * 60); };
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
   // --- 🧠 AI AGENCY: THE CONTROLLER LOGIC ---
-  const handleAiAction = async (action) => {
+  const handleAiAction = async (rawAction) => {
+    // Model output is untrusted: ignore anything off the allowlist
+    const action = validateAction(rawAction);
     if (!action) return;
 
     switch (action.type) {
       case 'SET_TIMER':
-        setFocusTime(action.minutes * 60);
-        setIsFocusRunning(true);
-        showToast(`Timer set for ${action.minutes}m`);
-        break;
       case 'STOP_TIMER':
-        setIsFocusRunning(false);
-        showToast("Timer Paused");
+      case 'PAUSE_TIMER':
+        // The focus timer lives at the app level (App.jsx); forward to it
+        window.dispatchEvent(new CustomEvent('zoneout:ai-action', { detail: action }));
+        showToast(action.type === 'SET_TIMER' ? `Timer set for ${action.minutes}m` : "Timer Paused");
         break;
       case 'NAVIGATE':
         if (action.view === 'dashboard') setView('dashboard');
@@ -391,18 +325,22 @@ export default function App() {
           setShowNotesModal(true);
         }
         break;
-      case 'ADD_GOAL':
+      case 'ADD_GOAL': {
+        const today = localDateString();
         const newGoal = {
           id: Date.now(),
           title: action.title,
-          targetDate: action.date || new Date().toISOString().split('T')[0],
+          targetDate: action.date || today,
           courseName: activeCourse ? activeCourse.name : "General",
-          plan: [{ date: new Date().toISOString().split('T')[0], task: "AI Created Task", done: false }]
+          plan: action.plan.length
+            ? action.plan.map(p => ({ date: today, task: p.task, done: false }))
+            : [{ date: today, task: "AI Created Task", done: false }]
         };
         setGoals(prev => [...prev, newGoal]);
         await dbAPI.save(STORE_GOALS, newGoal);
         showToast("Goal Added by AI");
         break;
+      }
       default:
         break;
     }
@@ -463,9 +401,10 @@ export default function App() {
         Return RAW JSON only:
         { "videoTitle": "Exact Title", "channelName": "Channel Name", "reason": "Why this video is good (1 sentence)" }
       `;
-      const data = await callBrainGenerate(prompt);
+      const data = normalizeVideoRec(await callBrainGenerate(prompt));
+      if (!data) throw new Error("Unusable video recommendation");
       setVideoRec(data);
-    } catch (e) {
+    } catch {
       const searchQuery = [mod.title, ...(mod.topics || []).slice(0, 3)].join(" ");
       setVideoRec({
         videoTitle: `${mod.title} – search for a tutorial`,
@@ -487,22 +426,23 @@ export default function App() {
   const handleCreateGoal = async () => {
     if (!goalTitle || !goalDate || !goalCourseId) return showToast("Fill all fields", "error");
     setIsProcessing(true); setStatusMsg("Optimizing Schedule...");
-    const course = courses.find(c => c.id === parseInt(goalCourseId));
+    const course = courses.find(c => String(c.id) === String(goalCourseId));
+    if (!course) { setIsProcessing(false); return showToast("Select a course", "error"); }
     try {
       const prompt = `
         Act as an Elite Study Strategist.
         Course: "${course.name}"
         Modules: ${course.modules.map(m => m.title).join(", ")}.
         Target Date: ${goalDate}.
-        Current Date: ${new Date().toISOString().split('T')[0]}.
+        Current Date: ${localDateString()}.
         TASK: Create a strategic checklist.
         Return RAW JSON: { "plan": [ { "date": "YYYY-MM-DD", "task": "Strategy Name", "done": false } ] }
       `;
       let plan;
       try {
         const data = await callBrainGenerate(prompt);
-        plan = Array.isArray(data.plan) ? data.plan : manualPlanFromCourse(course, goalDate);
-      } catch (e) {
+        plan = normalizePlan(data?.plan) || manualPlanFromCourse(course, goalDate);
+      } catch {
         plan = manualPlanFromCourse(course, goalDate);
         showToast("AI unavailable; plan generated from modules.", "success");
       }
@@ -510,19 +450,19 @@ export default function App() {
       setGoals(prev => [...prev, newGoal]);
       await dbAPI.save(STORE_GOALS, newGoal);
       setShowGoalModal(false);
+      setGoalTitle(""); setGoalDate(""); setGoalCourseId("");
       showToast("Plan Created!");
-    } catch (e) { showToast("Planning Failed", "error"); }
+    } catch { showToast("Planning Failed", "error"); }
     setIsProcessing(false);
   };
 
   const toggleGoalTask = async (goalId, taskIndex) => {
+    // Copy the task object too: mutating it in place changed the previous
+    // state snapshot and skipped re-renders.
     const updatedGoals = goals.map(g => {
-      if (g.id === goalId) {
-        const newPlan = [...g.plan];
-        newPlan[taskIndex].done = !newPlan[taskIndex].done;
-        return { ...g, plan: newPlan };
-      }
-      return g;
+      if (g.id !== goalId) return g;
+      const newPlan = g.plan.map((task, i) => i === taskIndex ? { ...task, done: !task.done } : task);
+      return { ...g, plan: newPlan };
     });
     setGoals(updatedGoals);
     await dbAPI.save(STORE_GOALS, updatedGoals.find(g => g.id === goalId));
@@ -533,24 +473,16 @@ export default function App() {
     await dbAPI.delete(STORE_GOALS, id);
   };
 
-  // --- PROGRESS INTEGRATION: MODULE COMPLETION ---
-  const handleMarkModuleCompleted = async (moduleTitle) => {
-    console.log("[NotesSection] Marking module completed:", moduleTitle);
-    if (pushProgressEvent) {
-      await pushProgressEvent({
-        eventType: "module_completed",
-        value: { moduleId: moduleTitle }
-      });
-    }
-  };
-
   const handleGenerateQuiz = async (module) => {
     setQuizLoading(true); setQuizData(null); setSelectedOption(null);
     try {
       const prompt = `Create 5 MCQs for "${module.title}". Topics: ${module.topics?.join(", ")}. Return RAW JSON ONLY. Format: { "questions": [{ "q": "", "options": ["","","",""], "answer": 0, "explanation": "" }] }`;
-      const data = await callBrainGenerate(prompt);
-      setQuizData({ ...data, current: 0, score: 0, showResult: false });
-    } catch (e) {
+      // Malformed questions (missing options, out-of-range answer) used to
+      // crash the quiz modal; normalizeQuiz drops them or rejects the quiz.
+      const quiz = normalizeQuiz(await callBrainGenerate(prompt));
+      if (!quiz) throw new Error("Unusable quiz");
+      setQuizData(quiz);
+    } catch {
       setQuizData(manualQuizFromModule(module));
       showToast("AI unavailable; using manual quiz.", "success");
     }
@@ -607,7 +539,7 @@ export default function App() {
           const cleanedText = text.replace(/\t/g, " | ").replace(/\s{2,}/g, " ").substring(0, 20000);
           const prompt = `Analyze syllabus and return RAW JSON ONLY. Format: { "syllabus": [ { "title": "Module 1: Name", "topics": ["Topic A", "Topic B"] } ] } INPUT: "${cleanedText}"`;
           const data = await callBrainGenerate(prompt);
-          if (Array.isArray(data?.syllabus) && data.syllabus.length > 0) finalModules = data.syllabus;
+          finalModules = normalizeModules(data?.syllabus);
         } catch (e) {
           console.warn("AI parsing failed:", e);
         }
@@ -615,16 +547,17 @@ export default function App() {
 
       if (!finalModules || finalModules.length === 0) {
         setStatusMsg("Using structured parser...");
-        finalModules = improvedManualParse(text);
-        if (!finalModules.length) finalModules = manualParseSyllabus(text);
-        if (!finalModules.length) {
+        finalModules = normalizeModules(improvedManualParse(text));
+        if (!finalModules) finalModules = normalizeModules(manualParseSyllabus(text));
+        if (!finalModules) {
           const lines = text.split(/\n/).map((l) => l.trim()).filter(Boolean);
-          finalModules = [{ title: "General", topics: lines.slice(0, 10).map((l) => l.substring(0, 80)) }];
+          finalModules = normalizeModules([{ title: "General", topics: lines.slice(0, 10).map((l) => l.substring(0, 80)) }]);
         }
         if (looksTabular) showToast("Tabular syllabus parsed; AI skipped.", "success");
         else showToast("AI unavailable; structure parsed manually.", "success");
       }
 
+      // Module titles key files and notes, so normalizeModules guarantees they are unique strings
       const newCourse = { id: Date.now(), code: newCode.trim().toUpperCase(), name: newName.trim(), syllabus: text, modules: finalModules, files: {}, moduleNotes: {} };
       newCourse.modules.forEach(m => { newCourse.files[m.title] = []; newCourse.moduleNotes[m.title] = ""; });
       const updated = [...courses, newCourse];
@@ -639,7 +572,6 @@ export default function App() {
       }
 
       resetForm();
-      setManualModuleLines("");
       showToast("Course Added Successfully");
     } catch (e) {
       console.error("Course creation failed:", e);
@@ -653,7 +585,6 @@ export default function App() {
     if (courses.length === 0) return showToast("Create a course first", "error");
     setIsProcessing(true); setStatusMsg(`Analyzing ${files.length} files...`);
     const updatedList = [...courses];
-    const changedIds = new Set();
     const filesData = [];
 
     for (let i = 0; i < files.length; i++) {
@@ -671,57 +602,62 @@ export default function App() {
 
     const prompt = `Match files to Courses. COURSES: ${courseStructure} FILES: ${filesInput} Return RAW JSON: { "matches": [ { "fileIndex": 0, "courseIndex": 1, "moduleIndex": 2 }, ... ] }`;
 
-    const applyMatches = (matches) => {
-      matches.forEach(match => {
-        const originalFile = files[match.fileIndex];
-        const targetCourse = updatedList[match.courseIndex];
-        if (targetCourse && originalFile) {
-          const targetModule = targetCourse.modules[match.moduleIndex] || targetCourse.modules[0];
-          const mKey = targetModule.title;
-          if (!targetCourse.files[mKey]) targetCourse.files[mKey] = [];
-          targetCourse.files[mKey].push({ id: Date.now() + Math.random(), title: originalFile.name, url: readFileAsUrl(originalFile), type: originalFile.name.split('.').pop().toUpperCase(), date: new Date().toLocaleDateString() });
-          changedIds.add(targetCourse.id);
-        }
-      });
-    };
     try {
       setStatusMsg("AI Sorting Batch...");
       const data = await callBrainGenerate(prompt);
-      if (data.matches && data.matches.length > 0) {
-        applyMatches(data.matches);
-        showToast(`Sorted ${data.matches.length} files`);
+      // Only accept integer indices that point at real files/courses/modules
+      const matches = validFileMatches(data?.matches, files.length, updatedList);
+      if (matches.length > 0) {
+        const { list, changedIds } = assignFiles(updatedList, matches, files);
+        for (const id of changedIds) await dbAPI.save(STORE_COURSES, list.find(c => c.id === id));
+        setCourses(list);
+        showToast(`Sorted ${matches.length} files`);
       } else {
         setManualSortState({ files: filesData.map(f => ({ index: f.index, name: f.name })), fileObjects: files, courses: updatedList });
         showToast("Assign files manually", "success");
       }
-    } catch (e) {
+    } catch {
       setManualSortState({ files: filesData.map(f => ({ index: f.index, name: f.name })), fileObjects: files, courses: updatedList });
       showToast("AI unavailable; assign files manually.", "success");
     }
-    for (const id of changedIds) await dbAPI.save(STORE_COURSES, updatedList.find(c => c.id === id));
-    setCourses(updatedList);
     setIsProcessing(false);
+  };
+
+  /**
+   * Returns new course objects with the files attached (never mutates state).
+   * Each file's Blob is stored in IndexedDB; the old code stored a blob: URL
+   * that stopped working after a page reload, so every upload was lost.
+   */
+  const assignFiles = (courseList, matches, fileObjects) => {
+    const changedIds = new Set();
+    const list = courseList.map(c => ({ ...c, files: { ...c.files } }));
+    matches.forEach(match => {
+      const originalFile = fileObjects[match.fileIndex];
+      const targetCourse = list[match.courseIndex];
+      if (!targetCourse || !originalFile || !targetCourse.modules?.length) return;
+      const targetModule = targetCourse.modules[match.moduleIndex ?? 0] || targetCourse.modules[0];
+      const mKey = targetModule.title;
+      targetCourse.files[mKey] = [...(targetCourse.files[mKey] || []), makeFileRecord(originalFile)];
+      changedIds.add(targetCourse.id);
+    });
+    return { list, changedIds };
   };
 
   const handleManualSortAssign = async (assignments) => {
     if (!manualSortState) return;
-    const { fileObjects, courses: list } = manualSortState;
-    const changedIds = new Set();
-    assignments.forEach(a => {
-      const originalFile = fileObjects[a.fileIndex];
-      const targetCourse = list[a.courseIndex];
-      if (targetCourse && originalFile) {
-        const targetModule = targetCourse.modules[a.moduleIndex ?? 0] || targetCourse.modules[0];
-        const mKey = targetModule.title;
-        if (!targetCourse.files[mKey]) targetCourse.files[mKey] = [];
-        targetCourse.files[mKey].push({ id: Date.now() + Math.random(), title: originalFile.name, url: readFileAsUrl(originalFile), type: originalFile.name.split('.').pop().toUpperCase(), date: new Date().toLocaleDateString() });
-        changedIds.add(targetCourse.id);
-      }
-    });
+    const { fileObjects } = manualSortState;
+    // Apply to the latest state, not the snapshot taken when the modal opened
+    const { list, changedIds } = assignFiles(courses, assignments, fileObjects);
     for (const id of changedIds) await dbAPI.save(STORE_COURSES, list.find(c => c.id === id));
-    setCourses([...list]);
+    setCourses(list);
     setManualSortState(null);
     showToast("Files assigned.");
+  };
+
+  const handleOpenFile = (file) => {
+    if (!openStoredFile(file)) {
+      showToast("This file was uploaded before files were saved offline. Please re-upload it.", "error");
+    }
   };
 
   const handleSaveModuleNotes = async (text) => {
@@ -771,6 +707,7 @@ export default function App() {
 
   // --- RENDER HELPERS ---
   if (loadingDB) return <div className="glass-panel" style={{ ...containerStyle, alignItems: 'center', justifyContent: 'center' }}><Loader className="spin-anim" /></div>;
+  if (loadError) return <div className="glass-panel" role="alert" style={{ ...containerStyle, alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}><p>Couldn’t open your Course Vault.</p><p style={{ opacity: 0.7, fontSize: '0.9rem' }}>{loadError}</p></div>;
 
   return (
     <div className="glass-panel" style={containerStyle}>
@@ -791,7 +728,7 @@ export default function App() {
       {toast && <div style={{ ...toastStyle, background: toast.type === 'error' ? '#ef4444' : '#10b981' }}>{toast.msg}</div>}
 
       {/* GLOBAL FILE INPUT */}
-      <input type="file" multiple ref={sortFileInputRef} style={{ display: 'none' }} onChange={(e) => handleSmartDrop(e.target.files)} />
+      <input type="file" multiple ref={sortFileInputRef} style={{ display: 'none' }} onChange={(e) => { const picked = Array.from(e.target.files || []); e.target.value = ""; handleSmartDrop(picked); }} />
 
       {/* GLOBAL CHAT "STUDY BUDDY" OVERLAY */}
       {showChat && (
@@ -878,15 +815,15 @@ export default function App() {
             ) : quizData.showResult ? (
               <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                 <div style={{ fontSize: '5rem', marginBottom: 20 }}>{quizData.score >= 4 ? '🏆' : '📚'}</div>
-                <h1>Score: {quizData.score} / 5</h1>
-                <p style={{ color: 'rgba(255,255,255,0.7)' }}>{quizData.score >= 4 ? "Mastery Achieved!" : "Keep Studying!"}</p>
+                <h1>Score: {quizData.score} / {quizData.questions.length}</h1>
+                <p style={{ color: 'var(--text-secondary)' }}>{quizData.score >= 4 ? "Mastery Achieved!" : "Keep Studying!"}</p>
                 <button onClick={closeQuiz} style={{ ...primaryBtnStyle, width: '200px', marginTop: 30 }}>Done</button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexShrink: 0 }}>
-                  <span style={{ opacity: 0.6, fontSize: '1.1rem' }}>Question {quizData.current + 1} of 5</span>
-                  <button onClick={closeQuiz} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}><X size={28} /></button>
+                  <span style={{ opacity: 0.6, fontSize: '1.1rem' }}>Question {quizData.current + 1} of {quizData.questions.length}</span>
+                  <button onClick={closeQuiz} aria-label="Close quiz" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}><X size={28} /></button>
                 </div>
                 <h2 style={{ marginBottom: 30, flexShrink: 0, lineHeight: 1.4 }}>{quizData.questions[quizData.current].q}</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 15, flexShrink: 0 }}>
@@ -937,7 +874,7 @@ export default function App() {
             </div>
             {syllabusMode === 'pdf' ? (
               <div style={dropZoneStyle}>
-                <input type="file" id="syl" accept=".pdf" onChange={e => handleCreateCourse(e.target.files[0])} style={{ display: 'none' }} />
+                <input type="file" id="syl" accept=".pdf" onChange={e => { const f = e.target.files[0]; e.target.value = ""; if (f) handleCreateCourse(f); }} style={{ display: 'none' }} />
                 <label htmlFor="syl" style={{ cursor: 'pointer', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                   {isProcessing ? <div style={{ display: 'flex', gap: '10px' }}><Loader className="spin-anim" /> {statusMsg}</div> : "Upload PDF"}
                 </label>
@@ -1051,16 +988,16 @@ export default function App() {
       {view === 'course-detail' && activeCourse ? (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexShrink: 0, background: 'var(--bg-secondary)', border: '1px solid var(--glass)', padding: '12px 20px', borderRadius: 12, boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <ArrowLeft onClick={() => setView('dashboard')} style={{ cursor: 'pointer' }} size={20} />
+            <button type="button" onClick={() => setView('dashboard')} aria-label="Back to courses" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', display: 'flex' }}><ArrowLeft size={20} /></button>
             <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--accent-primary)' }}>{activeCourse?.code}</h2>
           </div>
           <div style={{ display: 'flex', gap: 15 }}>
-            <button onClick={() => sortFileInputRef.current.click()} style={btnStyleCompact}><UploadCloud size={16} /></button>
+            <button onClick={() => sortFileInputRef.current.click()} aria-label="Upload files" style={btnStyleCompact}><UploadCloud size={16} /></button>
             <button onClick={() => setShowVideoModal(true)} style={btnStyleCompact}>
               <Youtube size={16} /> Video
             </button>
             <button onClick={() => setShowSyllabusModal(true)} style={btnStyleCompact}><TableIcon size={16} /> Syllabus</button>
-            <button onClick={() => handleDeleteCourse(activeCourseId)} style={{ ...btnStyleCompact, background: 'rgba(255,0,0,0.2)', color: 'var(--accent-primary)' }}><Trash2 size={16} /></button>
+            <button onClick={() => handleDeleteCourse(activeCourseId)} aria-label="Delete course" style={{ ...btnStyleCompact, background: 'rgba(255,0,0,0.2)', color: 'var(--accent-primary)' }}><Trash2 size={16} /></button>
           </div>
         </div>
       ) : (
@@ -1071,8 +1008,8 @@ export default function App() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => setView(view === 'goals' ? 'dashboard' : 'goals')} style={{ ...btnStyle, background: view === 'goals' ? 'var(--accent-primary)' : 'var(--glass)' }}><Calendar size={16} /><span style={{ display: isMobile ? 'none' : 'block', marginLeft: 5 }}>Goals</span></button>
-            {view === 'dashboard' && <button onClick={() => setShowAddModal(true)} style={btnStyle}><Plus size={16} /></button>}
+            <button onClick={() => setView(view === 'goals' ? 'dashboard' : 'goals')} aria-label="Goals" aria-pressed={view === 'goals'} style={{ ...btnStyle, background: view === 'goals' ? 'var(--accent-primary)' : 'var(--glass)' }}><Calendar size={16} /><span style={{ display: isMobile ? 'none' : 'block', marginLeft: 5 }}>Goals</span></button>
+            {view === 'dashboard' && <button onClick={() => setShowAddModal(true)} aria-label="Add course" style={btnStyle}><Plus size={16} /></button>}
           </div>
         </div>
       )}
@@ -1107,9 +1044,9 @@ export default function App() {
 
         {view === 'dashboard' && (
           <>
-            {!showAddModal && <div onClick={() => sortFileInputRef.current.click()} style={{ ...globalDropStyle, borderColor: dragActive ? 'var(--accent-primary)' : 'var(--glass)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 30 }} onDragOver={e => { e.preventDefault(); setDragActive(true) }} onDragLeave={() => setDragActive(false)} onDrop={e => { e.preventDefault(); setDragActive(false); handleSmartDrop(e.dataTransfer.files) }}>{isProcessing ? <div style={{ display: 'flex', gap: 10 }}><Loader className="spin-anim" />{statusMsg}</div> : <><UploadCloud size={32} style={{ marginBottom: 10, opacity: 0.5 }} /><div>{isMobile ? "Tap to Upload" : "Drop Files"}</div><div style={{ fontSize: '0.7rem', opacity: 0.5 }}>Auto-sorted by AI</div></>}</div>}
+            {!showAddModal && <div onClick={() => sortFileInputRef.current.click()} style={{ ...globalDropStyle, borderColor: dragActive ? 'var(--accent-primary)' : 'var(--glass)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 30 }} onDragOver={e => { e.preventDefault(); setDragActive(true) }} onDragLeave={() => setDragActive(false)} onDrop={e => { e.preventDefault(); setDragActive(false); handleSmartDrop(e.dataTransfer.files) }}>{isProcessing ? <div style={{ display: 'flex', gap: 10 }}><Loader className="spin-anim" />{statusMsg}</div> : <><UploadCloud size={32} style={{ marginBottom: 10, opacity: 0.5 }} /><div>{isMobile ? "Tap to Upload" : "Drop Files"}</div><div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Auto-sorted by AI</div></>}</div>}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(250px, 1fr))', gap: 15 }}>
-              {courses.map(c => <div key={c.id} className="interactive-card" onClick={() => { setActiveCourseId(c.id); setView('course-detail') }} style={courseCardStyle}><span style={codeBadgeStyle}>{c.code}</span><h3 style={{ margin: '10px 0' }}>{c.name}</h3><div style={{ fontSize: '0.8rem', opacity: 0.5 }}>{c.modules.length} Modules • {Object.values(c.files).flat().length} Files</div></div>)}
+              {courses.map(c => <div key={c.id} className="interactive-card" onClick={() => { setActiveCourseId(c.id); setView('course-detail') }} style={courseCardStyle}><span style={codeBadgeStyle}>{c.code}</span><h3 style={{ margin: '10px 0' }}>{c.name}</h3><div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{c.modules.length} Modules • {Object.values(c.files).flat().length} Files</div></div>)}
             </div>
           </>
         )}
@@ -1135,7 +1072,7 @@ export default function App() {
                     <button onClick={() => handleGenerateQuiz(mod)} style={{ ...btnStyle, padding: '4px 8px', fontSize: '0.7rem', color: 'var(--accent-primary)' }}><Brain size={14} /> Quiz</button>
                   </div>
                 </div>
-                {expandedFileModuleIndex === i && <div style={{ padding: 15 }}>{activeCourse.files[mod.title]?.length === 0 ? <span style={{ opacity: 0.3, fontSize: '0.8rem' }}>No files</span> : activeCourse.files[mod.title]?.map(f => <div key={f.id} style={{ padding: '10px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--glass)' }}><a href={f.url} target="_blank" style={{ color: 'var(--text-primary)' }}>{f.title}</a><Trash2 size={14} onClick={() => handleDeleteFile(activeCourseId, mod.title, f.id)} style={{ cursor: 'pointer', opacity: 0.5 }} /></div>)}</div>}
+                {expandedFileModuleIndex === i && <div style={{ padding: 15 }}>{activeCourse.files[mod.title]?.length === 0 ? <span style={{ opacity: 0.3, fontSize: '0.8rem' }}>No files</span> : activeCourse.files[mod.title]?.map(f => <div key={f.id} style={{ padding: '10px', display: 'flex', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid var(--glass)' }}><button type="button" onClick={() => handleOpenFile(f)} style={fileLinkStyle}>{f.title}{!f.blob && <span style={{ opacity: 0.5, fontSize: '0.75rem' }}> (re-upload needed)</span>}</button><button type="button" aria-label={`Delete file ${f.title}`} onClick={() => handleDeleteFile(activeCourseId, mod.title, f.id)} style={iconButtonStyle}><Trash2 size={14} /></button></div>)}</div>}
               </div>
             ))}
             <div style={{ height: 150 }}></div>
@@ -1147,6 +1084,28 @@ export default function App() {
 }
 
 // --- STYLES ---
+const fileLinkStyle = {
+  background: 'none',
+  border: 'none',
+  padding: 0,
+  color: 'var(--text-primary)',
+  textDecoration: 'underline',
+  cursor: 'pointer',
+  textAlign: 'left',
+  font: 'inherit',
+  overflowWrap: 'anywhere'
+};
+
+const iconButtonStyle = {
+  background: 'none',
+  border: 'none',
+  padding: 2,
+  color: 'var(--text-primary)',
+  cursor: 'pointer',
+  opacity: 0.5,
+  flexShrink: 0
+};
+
 const containerStyle = {
   height: '100%',
   display: 'flex',

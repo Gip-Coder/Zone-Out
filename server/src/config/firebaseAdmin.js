@@ -1,8 +1,6 @@
 import admin from 'firebase-admin';
-import dotenv from 'dotenv';
 
-dotenv.config();
-
+// Environment is loaded by src/server.js (`import "dotenv/config"`) before this module.
 // Check if Firebase Admin has already been initialized to prevent errors
 if (!admin.apps.length) {
     try {

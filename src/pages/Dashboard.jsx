@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Plus, ArrowRight, Settings, X, GripHorizontal, Check } from 'lucide-react';
 import { ThemeContext } from '../context/ThemeContext';
 import { WIDGET_REGISTRY, DEFAULT_LAYOUT } from '../config/widgetRegistry';
@@ -24,7 +24,7 @@ import { CSS } from '@dnd-kit/utilities';
 import './Dashboard.css';
 
 // The individual sorting item
-function SortableWidget({ widget, isEditMode, onRemove, theme }) {
+function SortableWidget({ widget, isEditMode, onRemove }) {
   const {
     attributes,
     listeners,
@@ -86,12 +86,14 @@ function SortableWidget({ widget, isEditMode, onRemove, theme }) {
           <button
             type="button"
             className="widget-remove-btn"
+            aria-label={`Remove ${registryData.title} widget`}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(widget.id); }}
           >
             <X size={16} color="#fff" />
           </button>
           <div
             className="widget-drag-handle"
+            aria-label={`Reorder ${registryData.title} widget`}
             {...attributes}
             {...listeners}
           >
@@ -136,7 +138,18 @@ function SortableWidget({ widget, isEditMode, onRemove, theme }) {
           {widgetContent}
         </div>
       ) : ACTION_WIDGET_IDS.includes(registryData.id) ? (
-        <div onClick={() => handleCardClick(registryData.id)} style={{ cursor: 'pointer' }}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => handleCardClick(registryData.id)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleCardClick(registryData.id);
+            }
+          }}
+          style={{ cursor: 'pointer' }}
+        >
           {widgetContent}
         </div>
       ) : (
@@ -171,7 +184,9 @@ export default function Dashboard() {
           return;
         }
       }
-    } catch (e) { }
+    } catch {
+      // Corrupt cached user — fall through to the default layout
+    }
 
     // Fallback
     setDashboardLayout(DEFAULT_LAYOUT);
@@ -222,7 +237,9 @@ export default function Dashboard() {
           parsed.dashboardLayout = response.dashboardLayout;
           localStorage.setItem("user", JSON.stringify(parsed));
         }
-      } catch (e) { }
+      } catch {
+        // Cached user is corrupt; the server copy is already saved
+      }
 
     } catch (e) {
       // API failed — save to localStorage as fallback

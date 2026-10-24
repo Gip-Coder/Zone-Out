@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useStudyGroup } from '../../context/StudyGroupContext';
 
 export const SidebarPresence = () => {
     const { group, membersPresence, loading } = useStudyGroup();
+    // Reference time captured once per mount (reading the clock during render is impure)
+    const [now] = useState(() => Date.now());
 
     if (loading) return <div className="p-4 text-gray-500 text-sm">Loading Members...</div>;
 
@@ -14,7 +16,7 @@ export const SidebarPresence = () => {
         }
 
         if (presence?.last_changed) {
-            const diff = Date.now() - presence.last_changed;
+            const diff = now - presence.last_changed;
             if (diff < 3600000) return { color: 'bg-amber-500', text: 'Away' };
         }
         return { color: 'bg-gray-600', text: 'Offline' };

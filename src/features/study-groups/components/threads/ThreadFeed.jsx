@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useThreadContext } from '../../context/ThreadContext';
-import { useStudyGroup } from '../../context/StudyGroupContext';
 import { ThreadCard } from './ThreadCard';
 import { CreateThreadModal } from './CreateThreadModal';
 

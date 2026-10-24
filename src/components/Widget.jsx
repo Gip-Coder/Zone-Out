@@ -83,6 +83,7 @@ export default function Widget({
                         <h3 className="widget-title">{title}</h3>
                         <button
                             className="widget-close"
+                            aria-label="Close widget"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onClose();

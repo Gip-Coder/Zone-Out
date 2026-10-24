@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useRef } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { Music, Check, LogIn, AlertCircle } from 'lucide-react';
 import { ToastContext } from '../context/ToastContext';
 import { useMusicAuth } from '../hooks/useMusicAuth';
@@ -10,7 +10,6 @@ export default function MusicPlayer({ isPlaying, setIsPlaying }) {
 
   const [activeTab, setActiveTab] = useState('spotify');
   const [showSignIn, setShowSignIn] = useState(false); // Controls if we are viewing the provider selection
-  const defaultSpotifyUri = "spotify:playlist:0vvXsWCC9xrXsKd4FyS8kM";
   const embedUrl = "https://open.spotify.com/embed/playlist/0vvXsWCC9xrXsKd4FyS8kM?utm_source=generator";
   // Determine if ANY account is connected to skip straight to the player
   const isAnyConnected = Object.values(connections).some(Boolean);

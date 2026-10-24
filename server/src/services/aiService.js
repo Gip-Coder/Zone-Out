@@ -1,15 +1,11 @@
-import { truncatePrompt } from "./providers/rateLimiter.js";
 import { buildContextPrompt, buildThinkPrompt, buildChatPrompt } from "../utils/contextBuilder.js";
+import { sanitizeAction } from "../utils/aiActions.js";
 import { aiRouter } from "./AIRouter.js";
-
-/** Max words for the final prompt sent to AI (keeps token usage efficient). */
-const MAX_PROMPT_WORDS = 100;
 
 /** Generic productivity assistant. */
 export const generateAIResponse = async (message, context) => {
   const prompt = buildContextPrompt(message, context);
-  const truncated = truncatePrompt(prompt, MAX_PROMPT_WORDS);
-  return await aiRouter.safeGenerate(truncated, "chat");
+  return await aiRouter.safeGenerate(prompt, "chat");
 };
 
 /** Study Buddy control: user input + app context → { text, action? }. */
@@ -22,33 +18,42 @@ export const generateThinkResponse = async (userInput, appContext) => {
 /** Study Buddy chat: message + history → reply text. */
 export const generateChatResponse = async (message, conversationHistory = []) => {
   const prompt = buildChatPrompt(message, conversationHistory);
-  const truncated = truncatePrompt(prompt, MAX_PROMPT_WORDS);
-  return await aiRouter.safeGenerate(truncated, "chat");
+  return await aiRouter.safeGenerate(prompt, "chat");
 };
 
-function parseThinkResponse(text) {
-  if (!text || typeof text !== "string") throw new Error("Empty think response");
-  let cleaned = text.replace(/```json|```/g, "").trim();
+/** Extracts the outermost JSON object from model text and parses it leniently. */
+export function extractJson(text) {
+  if (!text || typeof text !== "string") throw new Error("Empty AI response");
+  const cleaned = text.replace(/```json|```/g, "").trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end === -1) throw new Error("No JSON in think response");
+  if (start === -1 || end === -1 || end < start) throw new Error("No JSON in AI response");
   const jsonStr = cleaned
     .substring(start, end + 1)
+    // eslint-disable-next-line no-control-regex -- strip control chars models sometimes emit
     .replace(/[\u0000-\u001F\u007F-\u009F]/g, " ")
     .replace(/,\s*}/g, "}")
     .replace(/,\s*]/g, "]");
-  const parsed = JSON.parse(jsonStr);
-  return { text: parsed.text || "", action: parsed.action || null };
+  return JSON.parse(jsonStr);
+}
+
+export function parseThinkResponse(text) {
+  const parsed = extractJson(text);
+  return {
+    text: typeof parsed.text === "string" ? parsed.text : "",
+    // Model output is untrusted: only allowlisted, in-range actions pass through
+    action: sanitizeAction(parsed.action),
+  };
 }
 
 /** Manual fallback when API key exhausted: generate simple cards from topics. */
 function manualFlashcardsFallback(courseName, moduleTitle, topics = []) {
   const list = Array.isArray(topics) && topics.length > 0 ? topics : ["Key concept 1", "Key concept 2", "Key concept 3"];
-  const cards = list.slice(0, 10).map((t, i) => ({
+  const cards = list.slice(0, 10).map((t) => ({
     front: `What is ${t}? (${moduleTitle || "Module"})`,
     back: `${t} is an important topic in ${courseName || "this course"}. Review your notes for details.`,
   }));
-  return { cards };
+  return { cards, source: "manual" };
 }
 
 /**
@@ -68,23 +73,22 @@ Return RAW JSON only, no markdown or explanation:
 
   try {
     const raw = await aiRouter.safeGenerate(prompt, "generate");
-    const start = raw.indexOf("{");
-    const end = raw.lastIndexOf("}");
-    if (start === -1 || end === -1) throw new Error("No JSON");
-    const jsonStr = raw
-      .substring(start, end + 1)
-      .replace(/[\u0000-\u001F\u007F-\u009F]/g, " ")
-      .replace(/,\s*}/g, "}")
-      .replace(/,\s*]/g, "]");
-    const parsed = JSON.parse(jsonStr);
-    const cards = Array.isArray(parsed.cards) ? parsed.cards : [];
+    const parsed = extractJson(raw);
+    const cards = (Array.isArray(parsed.cards) ? parsed.cards : [])
+      .filter((c) => c && typeof c === "object")
+      .map((c) => ({
+        front: typeof c.front === "string" ? c.front : "",
+        back: typeof c.back === "string" ? c.back : "",
+      }))
+      .filter((c) => c.front || c.back)
+      .slice(0, 20);
     if (cards.length === 0) return manualFlashcardsFallback(courseName, moduleTitle, topicList);
-    return { cards: cards.map((c) => ({ front: c.front || "", back: c.back || "" })).filter((c) => c.front || c.back) };
+    return { cards, source: "ai" };
   } catch (e) {
     console.warn("Flashcard AI generation failed:", e.message);
     return manualFlashcardsFallback(courseName, moduleTitle, topicList);
   }
-}
+};
 
 /** Raw generation for frontend custom workflows */
 export const generateRawContent = async (prompt) => {

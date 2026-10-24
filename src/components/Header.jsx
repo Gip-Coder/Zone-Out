@@ -25,27 +25,7 @@ import {
 
 // navItems and placeholderItems moved to Sidebar.jsx
 
-const linkStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '8px',
-  padding: '10px 14px',
-  borderRadius: 'var(--radius-md, 8px)',
-  color: 'var(--text-secondary)',
-  textDecoration: 'none',
-  fontWeight: '500',
-  fontSize: '14px',
-  transition: 'all 0.2s ease',
-};
-
-const activeStyle = {
-  ...linkStyle,
-  color: 'var(--btn-primary-text)',
-  background: 'var(--btn-primary-bg)',
-  boxShadow: 'var(--glow-soft)',
-};
-
-export default function Header({ onLogout, user, onToggleSidebar, onToggleMobileMenu, isMobileMenuOpen }) {
+export default function Header({ onLogout, user, onToggleMobileMenu, isMobileMenuOpen }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
   const navigate = useNavigate();
@@ -159,50 +139,10 @@ const innerStyle = {
   gap: '24px',
 };
 
-
-const navStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '4px',
-  flex: 1,
-  justifyContent: 'center',
-};
-
-const dropdownWrap = {
-  position: 'relative',
-};
-
-const dropdownStyle = {
-  position: 'absolute',
-  top: '100%',
-  left: 0,
-  marginTop: '4px',
-  minWidth: '180px',
-  background: 'var(--bg-secondary)',
-  border: '1px solid var(--glass)',
-  borderRadius: 'var(--radius-lg, 12px)',
-  padding: '8px',
-  boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '2px',
-};
-
 const rightStyle = {
   display: 'flex',
   alignItems: 'center',
   gap: '12px',
-};
-
-const logoutBtnStyle = {
-  background: 'var(--btn-primary-bg)',
-  border: 'none',
-  padding: '8px 16px',
-  borderRadius: 'var(--radius-md, 8px)',
-  color: 'var(--btn-primary-text)',
-  fontWeight: '600',
-  cursor: 'pointer',
-  fontSize: '14px',
 };
 
 const menuToggleStyle = {
@@ -212,15 +152,6 @@ const menuToggleStyle = {
   color: 'var(--text-primary)',
   cursor: 'pointer',
   padding: '8px',
-};
-
-const mobileNavStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  padding: '16px 24px',
-  gap: '4px',
-  borderTop: '1px solid var(--glass)',
-  background: 'var(--overlay-bg)',
 };
 
 const userBubbleWrap = { position: 'relative' };

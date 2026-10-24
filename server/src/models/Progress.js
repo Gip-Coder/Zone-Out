@@ -6,6 +6,7 @@ const progressSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
     type: {
       type: String,
@@ -31,5 +32,8 @@ const progressSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Range queries for the Progress page and focus-goal period totals
+progressSchema.index({ user: 1, type: 1, date: 1 });
 
 export default mongoose.model("Progress", progressSchema);

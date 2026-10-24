@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { TrendingUp, Clock, BookOpen, Loader, Target } from "lucide-react";
-import { api } from "../services/apiClient";
 import { useProgressContext } from '../context/ProgressContext';
 import ProgressBar from '../components/ProgressBar';
-
-function getDaysAgo(n) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().split("T")[0];
-}
+import { localDaysAgo as getDaysAgo } from '../utils/date';
 
 export default function ProgressPage() {
   const { focus, goals, modules, stats, pushFocusGoalUpdate, refreshProgress, loading, error } = useProgressContext();
@@ -26,7 +20,8 @@ export default function ProgressPage() {
   };
 
   useEffect(() => {
-    const from = getDaysAgo(rangeDays);
+    // "Last N days" = today plus the N-1 days before it, matching the chart rows
+    const from = getDaysAgo(rangeDays - 1);
     const to = getDaysAgo(0);
     refreshProgress(from, to);
   }, [rangeDays, refreshProgress]);
@@ -81,6 +76,7 @@ export default function ProgressPage() {
                   <div className="focus-goal-setter">
                     <input
                       type="number"
+                      aria-label="Weekly focus goal in minutes"
                       className="focus-goal-input"
                       placeholder="min"
                       value={focusGoalInput}
@@ -95,7 +91,7 @@ export default function ProgressPage() {
             }
             emptyText={
               focus.goalMinutes === 0 && !showGoalSetter
-                ? <span onClick={() => setShowGoalSetter(true)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Set a focus goal to start tracking</span>
+                ? <button type="button" onClick={() => setShowGoalSetter(true)} style={linkButtonStyle}>Set a focus goal to start tracking</button>
                 : undefined
             }
           />
@@ -117,6 +113,7 @@ export default function ProgressPage() {
       <div style={rangeStyle}>
         <span>Last </span>
         <select
+          aria-label="Date range"
           value={rangeDays}
           onChange={(e) => setRangeDays(Number(e.target.value))}
           style={selectStyle}
@@ -185,7 +182,7 @@ export default function ProgressPage() {
               <p style={{ color: "var(--text-secondary)", margin: 0 }}>No subject data yet. Log focus with a course name to see breakdown.</p>
             ) : (
               <div style={barChartStyle}>
-                {stats.subjectBreakdown
+                {[...stats.subjectBreakdown]
                   .sort((a, b) => b.minutes - a.minutes)
                   .map((item) => {
                     const pct = (item.minutes / maxMinutes) * 100;
@@ -211,6 +208,7 @@ export default function ProgressPage() {
 }
 
 const pageStyle = { padding: "32px" };
+const linkButtonStyle = { cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', font: 'inherit', padding: 0 };
 const titleStyle = { fontSize: "28px", fontWeight: 700, marginBottom: 8 };
 const subStyle = { color: "var(--text-secondary)", marginBottom: 24 };
 const rangeStyle = { marginBottom: 20, display: "flex", alignItems: "center", gap: 8 };

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { db, rtdb, serverTimestamp } from '../../../services/firebaseDb';
-import firebase from 'firebase/compat/app';
 
 const ChatContext = createContext();
 

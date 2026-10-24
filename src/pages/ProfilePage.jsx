@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+
+function readStoredUser() {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function ProfilePage() {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('user');
-      if (raw) setUser(JSON.parse(raw));
-    } catch (_) {
-      setUser(null);
-    }
-  }, []);
+  const [user] = useState(readStoredUser);
 
   const displayName = user?.name || user?.email || 'User';
   const initial = displayName && displayName[0] ? displayName[0].toUpperCase() : '?';

@@ -32,7 +32,7 @@ export const ThreadCard = memo(({ thread, currentUser }) => {
             setUpvoteCount(prev => !newUpvoteState ? prev + 1 : prev - 1);
             console.error("Upvote failed", err);
         }
-    }, [isUpvoted, thread.id, currentUser?.id, toggleUpvote]);
+    }, [isUpvoted, thread.id, currentUser, toggleUpvote]);
 
     return (
         <div className="glass-card p-6 mb-6 glass-card-hover overflow-hidden relative group">

@@ -1,21 +1,38 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getCache, setCache, createCacheKey, TTL_MAP, isValidResponse, cacheMetrics } from "./cache/cache.js";
+import { withTimeout } from "./providers/utils.js";
 
-// Step 4: Add Deduplication map for in-flight requests
-const pending = new Map();
+// Per-model attempt timeout; the fallback queue moves on when a model hangs.
+const MODEL_TIMEOUT_MS = 15000;
+
+const KEY_ENV_BY_TYPE = {
+  chat: "GEMINI_CHAT_KEY",
+  control: "GEMINI_CONTROL_KEY",
+  generate: "GEMINI_GEN_KEY",
+};
 
 export class AIRouter {
-  constructor() {
-    // 1. Get Environment Variables
-    const chatKey = process.env.GEMINI_CHAT_KEY;
-    const controlKey = process.env.GEMINI_CONTROL_KEY;
-    const genKey = process.env.GEMINI_GEN_KEY;
-    const fallbackKey = process.env.GEMINI_API_KEY;
+  /**
+   * @param {object} [options]
+   * @param {(apiKey: string) => { getGenerativeModel: Function }} [options.clientFactory]
+   *   Creates a provider client; injectable so tests never call the real API.
+   */
+  constructor({ clientFactory = (key) => new GoogleGenerativeAI(key) } = {}) {
+    this.clientFactory = clientFactory;
+    this.clients = new Map();
+    // Step 4: Deduplication map for in-flight requests
+    this.pending = new Map();
+  }
 
-    // 2. Initialize Multiple Gemini Clients
-    this.chatAI = new GoogleGenerativeAI(chatKey || fallbackKey);
-    this.controlAI = new GoogleGenerativeAI(controlKey || fallbackKey);
-    this.genAI = new GoogleGenerativeAI(genKey || fallbackKey);
+  /**
+   * Clients are created lazily so API keys are read after the environment has
+   * been loaded, not at module import time.
+   */
+  getClient(type) {
+    const apiKey = process.env[KEY_ENV_BY_TYPE[type] || KEY_ENV_BY_TYPE.generate] || process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("Gemini API key is not configured");
+    if (!this.clients.has(apiKey)) this.clients.set(apiKey, this.clientFactory(apiKey));
+    return this.clients.get(apiKey);
   }
 
   // Helper arrays for model fallback queue inside each key
@@ -29,54 +46,29 @@ export class AIRouter {
   }
 
   async _executeFallbackRouting(prompt, type) {
-    let primaryClient;
-
-    // Determine the correct client instance based on the type
-    switch (type) {
-      case "chat":
-        primaryClient = this.chatAI;
-        break;
-      case "control":
-        primaryClient = this.controlAI;
-        break;
-      case "generate":
-      default:
-        primaryClient = this.genAI;
-        break;
-    }
-
+    const primaryClient = this.getClient(type);
     const fallbackQueue = this.getFallbackModels();
     let lastError = null;
 
     for (const modelName of fallbackQueue) {
       try {
         const currentModel = primaryClient.getGenerativeModel({ model: modelName });
-        
-        console.log(`[AIRouter] Attempting generation. Type: ${type}, Model: ${modelName}`);
-        const result = await currentModel.generateContent(prompt);
-        
+        const result = await withTimeout(currentModel.generateContent(prompt), MODEL_TIMEOUT_MS);
+        const text = result.response.text();
+        if (!isValidResponse(text)) throw new Error("Empty response");
+
         console.log(`[AIRouter] SUCCESS | Type: ${type} | Model: ${modelName}`);
-        return result.response.text();
+        return text;
       } catch (error) {
+        // Quota (429), overload (503), timeouts and model errors all fail over
+        // to the next model in the queue.
         lastError = error;
-        const msg = error.message.toLowerCase();
-        
         console.warn(`[AIRouter] FAILED | Type: ${type} | Model: ${modelName} | Error: ${error.message}`);
-        
-        if (msg.includes("429") || msg.includes("quota")) {
-          console.warn(`[AIRouter] 429 Quota Exhausted on ${modelName}, failing over to next model...`);
-          continue;
-        } else if (msg.includes("503") || msg.includes("overloaded")) {
-          console.warn(`[AIRouter] 503 Service Unavailable on ${modelName}, failing over to next model...`);
-          continue;
-        } else {
-          continue;
-        }
       }
     }
 
-    console.error(`[AIRouter] ALL FALLBACKS FAILED for type: ${type}. Returning graceful error.`);
-    throw new Error(`All Gemini fallbacks failed: ${lastError.message}`);
+    console.error(`[AIRouter] ALL FALLBACKS FAILED for type: ${type}.`);
+    throw new Error(`All Gemini fallbacks failed: ${lastError?.message || "unknown error"}`);
   }
 
   // Step 3, 6, 9, 10: safeGenerate overlaid with Cache & Dedup layer
@@ -88,32 +80,27 @@ export class AIRouter {
       const cached = getCache(key);
       if (cached) {
         cacheMetrics.cacheHits++;
-        console.log({ type, cache: "HIT" });
-        console.log({ cacheHits: cacheMetrics.cacheHits, cacheMisses: cacheMetrics.cacheMisses });
         return cached;
-      } else {
-        cacheMetrics.cacheMisses++;
-        console.log({ type, cache: "MISS" });
       }
+      cacheMetrics.cacheMisses++;
 
       // 2. Dedup Check (In-Flight)
-      if (pending.has(key)) {
-        console.log({ type, dedup: "HIT" });
-        return await pending.get(key);
+      if (this.pending.has(key)) {
+        return await this.pending.get(key);
       }
     }
 
     // 3. Provider Routing (Execute Core Logic inside promise)
     const promise = this._executeFallbackRouting(prompt, type);
-    
+
     // Store promise in pending mapping unconditionally unless bypassing cache
     if (!bypassCache) {
-      pending.set(key, promise);
+      this.pending.set(key, promise);
     }
 
     try {
       const result = await promise;
-      
+
       // 4. Cache Store on Success AND Validation
       if (!bypassCache && isValidResponse(result)) {
         setCache(key, result, TTL_MAP[type] || 300000);
@@ -121,7 +108,7 @@ export class AIRouter {
       return result;
     } finally {
       if (!bypassCache) {
-        pending.delete(key);
+        this.pending.delete(key);
       }
     }
   }

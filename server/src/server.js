@@ -1,45 +1,11 @@
-import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
-import cookieParser from "cookie-parser";
-
-// LOAD ENV FIRST
-dotenv.config();
+// LOAD ENV FIRST — must be the first import so modules that read process.env
+// at load time (AI router, Firebase admin) see the values from .env.
+import "dotenv/config";
 
 import connectDB from "./config/db.js";
-import authRoutes from "./routes/authRoutes.js";
-import aiRoutes from "./routes/aiRoutes.js";
-import progressRoutes from "./routes/progressRoutes.js";
-import { errorHandler } from "./middleware/errorMiddleware.js";
-import goalRoutes from "./routes/goalRoutes.js";
+import app from "./app.js";
 
 connectDB();
-
-const app = express();
-
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://zone-out-jade.vercel.app",
-  ],
-  credentials: true
-}));
-app.use(express.json());
-app.use(cookieParser());
-
-app.use((req, res, next) => {
-  console.log(`[DEBUG] Incoming Request: ${req.method} ${req.url}`);
-  next();
-});
-
-app.use("/api/auth", authRoutes);
-app.use("/api/ai", aiRoutes);
-app.use("/api/progress", progressRoutes);
-
-app.use("/api/goals", goalRoutes);
-
-// Error Handler must be the LAST middleware
-app.use(errorHandler);
 
 // Export app for Vercel Serverless
 export default app;

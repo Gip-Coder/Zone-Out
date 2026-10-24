@@ -3,8 +3,11 @@ import { ThemeContext } from "../context/ThemeContext";
 import { ToastContext } from "../context/ToastContext";
 import { motion } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
-import { auth, googleProvider } from "../services/firebaseDb";
 import { api } from "../services/apiClient";
+
+// Firebase (only needed for Google sign-in) is large; keep it out of the
+// initial bundle and load it right after the login screen mounts.
+const loadFirebase = () => import("../services/firebaseDb");
 
 export default function Auth({ setIsAuthenticated }) {
   const { theme, toggleTheme } = useContext(ThemeContext);
@@ -16,9 +19,16 @@ export default function Auth({ setIsAuthenticated }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [loading, setLoading] = useState(false);
 
-  // Use relative path in production, and localhost in dev
-  const API_BASE = import.meta.env.DEV ? "http://localhost:5000" : (import.meta.env.VITE_API_URL || "");
-  const API_URL = `${API_BASE}/api/auth`;
+  // Preloaded so the Google popup can open synchronously inside the click
+  // handler (an await before signInWithPopup can trip popup blockers).
+  const firebaseRef = useRef(null);
+  useEffect(() => {
+    let alive = true;
+    loadFirebase()
+      .then((mod) => { if (alive) firebaseRef.current = mod; })
+      .catch((err) => console.warn("Firebase failed to load:", err.message));
+    return () => { alive = false; };
+  }, []);
 
   // Detect screen resize
   useEffect(() => {
@@ -51,6 +61,7 @@ export default function Auth({ setIsAuthenticated }) {
       });
     }
 
+    let animId;
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "rgba(168, 85, 247, 0.4)"; // Purple accent for particles
@@ -61,17 +72,23 @@ export default function Auth({ setIsAuthenticated }) {
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fill();
       });
-      requestAnimationFrame(animate);
+      animId = requestAnimationFrame(animate);
     }
 
     animate();
 
-    return () => window.removeEventListener("resize", resizeCanvas);
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+      if (animId) {
+        cancelAnimationFrame(animId);
+      }
+    };
   }, []);
 
   // ================= LOGIN / REGISTER =================
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return; // ignore repeat submits while a request is in flight
     setLoading(true);
     const endpoint = mode === "login" ? "/auth/login" : "/auth/register";
     const body = mode === "login"
@@ -101,6 +118,17 @@ export default function Auth({ setIsAuthenticated }) {
   };
 
   const handleGoogleLogin = async () => {
+    if (loading) return;
+    let firebaseMod = firebaseRef.current;
+    if (!firebaseMod) {
+      try {
+        firebaseMod = await loadFirebase();
+      } catch {
+        toastError("Google Sign-In is unavailable right now.");
+        return;
+      }
+    }
+    const { auth, googleProvider } = firebaseMod;
     if (!auth) {
       toastError("Firebase Auth is not configured in .env");
       return;
@@ -138,7 +166,7 @@ export default function Auth({ setIsAuthenticated }) {
         </>
       )}
 
-      <button onClick={toggleTheme} style={styles.themeToggle}>
+      <button type="button" onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} style={styles.themeToggle}>
         {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
       </button>
 
@@ -173,6 +201,10 @@ export default function Auth({ setIsAuthenticated }) {
                 <input
                   type="text"
                   placeholder="Name"
+                  aria-label="Name"
+                  autoComplete="name"
+                  required
+                  maxLength={100}
                   value={form.name}
                   style={styles.input}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -181,6 +213,9 @@ export default function Auth({ setIsAuthenticated }) {
               <input
                 type="email"
                 placeholder="Email"
+                aria-label="Email"
+                autoComplete="email"
+                required
                 value={form.email}
                 style={styles.input}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -188,6 +223,11 @@ export default function Auth({ setIsAuthenticated }) {
               <input
                 type="password"
                 placeholder="Password"
+                aria-label="Password"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                required
+                minLength={mode === "register" ? 6 : undefined}
+                maxLength={128}
                 value={form.password}
                 style={styles.input}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}

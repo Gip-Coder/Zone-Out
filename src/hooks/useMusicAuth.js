@@ -1,41 +1,46 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+
+/**
+ * Spotify token from storage or from the OAuth redirect hash. Read once when
+ * the hook mounts (lazy state init) instead of in an effect, which caused an
+ * extra render with the "not connected" state.
+ */
+function readSpotifyToken() {
+    let token = null;
+    try {
+        token = window.localStorage.getItem('spotify_token');
+        const hash = window.location.hash;
+        if (!token && hash) {
+            token = hash.substring(1).split('&').find(elem => elem.startsWith('access_token'))?.split('=')[1] || null;
+            window.location.hash = ''; // Clear hash from URL securely
+            if (token) {
+                window.localStorage.setItem('spotify_token', token);
+            }
+        }
+    } catch {
+        // Storage unavailable (private mode) — treat as not connected
+    }
+    return token;
+}
 
 /**
  * A custom hook to manage authentication states and authorization scripts
  * for Spotify, Apple Music, and YouTube Music.
  */
 export function useMusicAuth() {
-    const [connections, setConnections] = useState({
-        spotify: false,
+    const [initialSpotifyToken] = useState(readSpotifyToken);
+
+    const [connections, setConnections] = useState(() => ({
+        spotify: !!initialSpotifyToken,
         apple: false,
         youtube: false,
         amazon: false
-    });
+    }));
 
-    const [tokens, setTokens] = useState({
-        spotify: null,
+    const [tokens, setTokens] = useState(() => ({
+        spotify: initialSpotifyToken,
         youtube: null
-    });
-
-    // Spotify Logic
-    useEffect(() => {
-        // Check hash for Spotify redirect token
-        const hash = window.location.hash;
-        let token = window.localStorage.getItem('spotify_token');
-
-        if (!token && hash) {
-            token = hash.substring(1).split('&').find(elem => elem.startsWith('access_token'))?.split('=')[1];
-            window.location.hash = ''; // Clear hash from URL securely
-            if (token) {
-                window.localStorage.setItem('spotify_token', token);
-            }
-        }
-
-        if (token) {
-            setConnections(prev => ({ ...prev, spotify: true }));
-            setTokens(prev => ({ ...prev, spotify: token }));
-        }
-    }, []);
+    }));
 
     const loginSpotify = () => {
         const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;

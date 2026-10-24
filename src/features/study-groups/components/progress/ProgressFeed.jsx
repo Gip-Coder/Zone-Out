@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useProgressContext } from '../../context/ProgressContext';
-import { useStudyGroup } from '../../context/StudyGroupContext';
 import { ProgressCard } from './ProgressCard';
 import { AddProgressForm } from './AddProgressForm';
 

@@ -44,7 +44,6 @@ export function ToastProvider({ children }) {
 function ToastItem({ toast, onDismiss }) {
   const isSuccess = toast.type === "success";
   const isError = toast.type === "error";
-  const isInfo = toast.type === "info" || (!isSuccess && !isError);
 
   const iconStyle = { flexShrink: 0 };
   const Icon = isSuccess ? CheckCircle : isError ? XCircle : Info;

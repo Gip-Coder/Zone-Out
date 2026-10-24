@@ -1,40 +1,52 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { progressService } from '../services/progressService';
 
 const ProgressContext = createContext();
 
-export function ProgressProvider({ children }) {
-  const [progressData, setProgressData] = useState({
-    focus: { goalMinutes: 0, minutesCompleted: 0, percentage: 0 },
-    goals: { completed: 0, total: 0, percentage: 0 },
-    modules: { completed: 0, total: 0, percentage: 0 },
-    stats: {
-      totalMinutes: 0,
-      sessionsCompleted: 0,
-      dailyBreakdown: [],
-      subjectBreakdown: []
-    },
-    loading: false,
-    error: null
-  });
+const INITIAL_PROGRESS = {
+  focus: { goalMinutes: 0, minutesCompleted: 0, percentage: 0 },
+  goals: { completed: 0, total: 0, percentage: 0 },
+  modules: { completed: 0, total: 0, percentage: 0 },
+  stats: {
+    totalMinutes: 0,
+    sessionsCompleted: 0,
+    dailyBreakdown: [],
+    subjectBreakdown: []
+  },
+  loading: false,
+  error: null
+};
 
-  const calculatePercentage = (completed, total) => {
-    if (!total || total === 0) return 0;
-    const pct = (completed / total) * 100;
-    return Math.min(Math.round(pct), 100);
-  };
+const calculatePercentage = (completed, total) => {
+  if (!total || total === 0) return 0;
+  const pct = ((completed || 0) / total) * 100;
+  return Math.min(Math.round(pct), 100);
+};
+
+export function ProgressProvider({ children }) {
+  const [progressData, setProgressData] = useState(INITIAL_PROGRESS);
+  // The range the Progress page last asked for. Refreshes triggered by events
+  // (timer finished, goal toggled) reuse it so the page's charts don't blank out.
+  const rangeRef = useRef({ from: undefined, to: undefined });
+  // Ignore responses that arrive after a newer request was started
+  const requestIdRef = useRef(0);
 
   const refreshProgress = useCallback(async (from, to) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
+    if (from && to) rangeRef.current = { from, to };
+    const range = rangeRef.current;
+    const requestId = ++requestIdRef.current;
+
     try {
-      const data = await progressService.fetchProgress(from, to);
-      
+      const data = await progressService.fetchProgress(range.from, range.to);
+      if (requestId !== requestIdRef.current) return;
+
       if (data && data.summary) {
         const { focus, goals, modules } = data.summary;
         const { stats } = data;
-        
+
         setProgressData({
           focus: {
             goalMinutes: focus?.goalMinutes || 0,
@@ -62,6 +74,7 @@ export function ProgressProvider({ children }) {
         });
       }
     } catch (error) {
+      if (requestId !== requestIdRef.current) return;
       // Silently handle 404/401/network errors — don't spam console
       const msg = error?.message || '';
       const isIgnorable = msg.includes('Not Found') || msg.includes('404')
@@ -74,30 +87,32 @@ export function ProgressProvider({ children }) {
     }
   }, []);
 
-  // Initial load — only when token exists
-  // Initial load + Auth change detection
+  /** Clears cached progress on logout so the next user never sees it. */
+  const resetProgress = useCallback(() => {
+    requestIdRef.current++;
+    rangeRef.current = { from: undefined, to: undefined };
+    setProgressData(INITIAL_PROGRESS);
+  }, []);
+
+  // Initial load + cross-tab auth changes. Same-tab logins are handled by App,
+  // which calls refreshProgress() once the user is authenticated.
   useEffect(() => {
     const handleAuthChange = () => {
       const token = localStorage.getItem("token");
       if (token) {
         refreshProgress();
+      } else {
+        resetProgress();
       }
     };
-    
-    handleAuthChange(); // Check on mount/update
 
-    // Since token is in localStorage, we can use storage event for cross-tab 
-    // OR we can just rely on the fact that App.jsx re-renders the tree when auth state changes.
-    // However, ProgressProvider is ABOVE App.jsx in main.jsx, so it won't re-render.
-    // We add a recurring check or a custom event if needed, but storage event helps.
+    handleAuthChange();
     window.addEventListener("storage", handleAuthChange);
     return () => window.removeEventListener("storage", handleAuthChange);
-  }, [refreshProgress]);
+  }, [refreshProgress, resetProgress]);
 
   const pushProgressEvent = useCallback(async (payload) => {
     try {
-      // Ensure we use the correct event names mapping if needed, 
-      // but the components should pass correct ones.
       await progressService.logProgressEvent(payload);
       await refreshProgress(); // Centralized refresh
     } catch (error) {
@@ -115,11 +130,10 @@ export function ProgressProvider({ children }) {
   }, [refreshProgress]);
 
   return (
-    <ProgressContext.Provider value={{ ...progressData, refreshProgress, pushProgressEvent, pushFocusGoalUpdate }}>
+    <ProgressContext.Provider value={{ ...progressData, refreshProgress, resetProgress, pushProgressEvent, pushFocusGoalUpdate }}>
       {children}
     </ProgressContext.Provider>
   );
 }
 
 export const useProgressContext = () => useContext(ProgressContext);
-

@@ -7,14 +7,12 @@ const StudyGroupContext = createContext();
 export const StudyGroupProvider = ({ groupId, currentUser, children }) => {
     const [group, setGroup] = useState(null);
     const [membersPresence, setMembersPresence] = useState({});
-    const [loading, setLoading] = useState(true);
+    // Nothing to load without a group or a configured Firebase
+    const [loading, setLoading] = useState(Boolean(groupId && db));
 
     // 1. Core Group Details Listener
     useEffect(() => {
-        if (!groupId || !db) {
-            setLoading(false);
-            return;
-        }
+        if (!groupId || !db) return;
 
         const unsubscribe = db.collection('groups').doc(groupId).onSnapshot(
             (doc) => {

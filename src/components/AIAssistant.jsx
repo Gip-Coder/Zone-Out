@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Send, X, MessageSquare, BookOpen, Brain, ListCheck, Sparkles, Trash2, Copy, RefreshCw } from 'lucide-react';
 import { api } from "../services/apiClient";
 
-export default function AIAssistant({ goals = [], activeAIAction, setActiveAIAction }) {
+export default function AIAssistant({ activeAIAction, setActiveAIAction }) {
     const [isOpen, setIsOpen] = useState(false);
     const [input, setInput] = useState('');
     const INITIAL_MESSAGE = { role: 'assistant', content: 'Hi! I am your ZoneOut Study Buddy. Need a quick explanation or a study tip?' };

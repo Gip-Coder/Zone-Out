@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 // Step 1: Base cache store
 const cache = new Map();
 const MAX_CACHE_SIZE = 1000;
@@ -8,9 +10,10 @@ export const cacheMetrics = {
   cacheMisses: 0
 };
 
+// Keys match the request types passed to AIRouter.safeGenerate
 export const TTL_MAP = {
   chat: 300000,        // 5 min
-  generation: 600000,  // 10 min
+  generate: 600000,    // 10 min
   control: 60000       // 1 min
 };
 
@@ -21,13 +24,13 @@ export function getCache(key) {
   if (!cache.has(key)) return null;
 
   const entry = cache.get(key);
-  
+
   if (Date.now() > entry.expiry) {
     // Expired
     cache.delete(key);
     return null;
   }
-  
+
   return entry.value;
 }
 
@@ -47,15 +50,19 @@ export function setCache(key, value, ttl = 300000) {
   });
 }
 
+export function clearCache() {
+  cache.clear();
+}
+
 /**
- * Patch 4: Stable cache key generator (Efficient)
+ * Patch 4: Stable cache key generator.
+ * The key covers the WHOLE normalized prompt (hashed). Keying on a prefix made
+ * different prompts that share a long fixed preamble return each other's answers.
  */
 export function createCacheKey({ prompt, type }) {
-  // Normalize: lower, trim, remove arbitrary inner spacing
-  const normalizedPrompt = prompt.replace(/\s+/g, " ").trim().toLowerCase();
-  
-  // Slice to exactly 300
-  return `${type}:${normalizedPrompt.slice(0, 300)}`;
+  const normalizedPrompt = prompt.replace(/\s+/g, " ").trim();
+  const digest = crypto.createHash("sha256").update(normalizedPrompt).digest("hex");
+  return `${type}:${digest}`;
 }
 
 /**

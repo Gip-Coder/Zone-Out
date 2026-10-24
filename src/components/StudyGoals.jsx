@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, CheckCircle, Circle } from 'lucide-react';
 import { api } from '../services/apiClient';
 import { useProgressContext } from '../context/ProgressContext';
@@ -8,18 +8,29 @@ const STORAGE_KEY = "zoneout_goals";
 function loadLocalGoals() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch { return []; }
 }
 
 function saveLocalGoals(goals) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(goals)); } catch { }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(goals)); } catch {
+    // Storage full or unavailable (private mode) — the in-memory list still works
+  }
 }
 
-export default function StudyGoals() {
-  const [goals, setGoals] = useState([]);
+/**
+ * Goals list. When `goals`/`setGoals` are passed (Timeline page), state is
+ * shared with App so goals the AI assistant adds appear here immediately.
+ */
+export default function StudyGoals({ goals: goalsProp, setGoals: setGoalsProp }) {
+  const [localGoals, setLocalGoals] = useState([]);
+  const goals = goalsProp ?? localGoals;
+  const setGoals = setGoalsProp ?? setLocalGoals;
   const [newGoal, setNewGoal] = useState("");
   const [useLocal, setUseLocal] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const busyIdsRef = useRef(new Set());
   const { pushProgressEvent } = useProgressContext();
 
   // Persist goals to localStorage whenever they change
@@ -33,9 +44,11 @@ export default function StudyGoals() {
   // LOAD GOALS — API first, localStorage fallback
   // ===============================
   useEffect(() => {
+    let cancelled = false;
     const fetchGoals = async () => {
       try {
         const data = await api.get("/goals");
+        if (cancelled) return;
         if (Array.isArray(data)) {
           setGoals(data);
           saveLocalGoals(data);
@@ -43,6 +56,7 @@ export default function StudyGoals() {
           setGoals([]);
         }
       } catch (err) {
+        if (cancelled) return;
         console.warn("API unavailable, using local goals:", err.message);
         setUseLocal(true);
         setGoals(loadLocalGoals());
@@ -50,58 +64,74 @@ export default function StudyGoals() {
     };
 
     fetchGoals();
+    return () => { cancelled = true; };
+    // Load once on mount; the parent's setGoals is a stable state setter
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Runs one mutation per goal at a time so double-clicks can't race. */
+  const withGoalLock = async (id, fn) => {
+    if (busyIdsRef.current.has(id)) return;
+    busyIdsRef.current.add(id);
+    try { await fn(); } finally { busyIdsRef.current.delete(id); }
+  };
 
   // ===============================
   // ADD GOAL
   // ===============================
   const addGoal = async () => {
-    if (!newGoal.trim()) return;
+    const text = newGoal.trim();
+    // Guard against duplicate submissions from double clicks / repeated Enter
+    if (!text || isAdding) return;
+    setIsAdding(true);
 
     const localGoal = {
       _id: `local_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-      text: newGoal,
+      text,
       targetDate: "",
       plan: [],
       completed: false,
       createdAt: new Date().toISOString(),
     };
 
-    if (!useLocal) {
-      try {
-        const data = await api.post("/goals", {
-          text: newGoal,
-          targetDate: "",
-          plan: []
-        });
-
-        setGoals(prev => [data, ...prev]);
-        setNewGoal("");
-        
-        // Update progress bar
-        if (pushProgressEvent) {
-          pushProgressEvent({
-            eventType: "goal_updated",
-            value: { goalId: data._id }
+    try {
+      if (!useLocal) {
+        try {
+          const data = await api.post("/goals", {
+            text,
+            targetDate: "",
+            plan: []
           });
-        }
-        return;
-      } catch (error) {
-        console.warn("API add failed, saving locally:", error.message);
-        setUseLocal(true);
-      }
-    }
 
-    // Fallback: add to local state
-    setGoals(prev => [localGoal, ...prev]);
-    setNewGoal("");
+          setGoals(prev => [data, ...prev]);
+          setNewGoal("");
+
+          // Update progress bar
+          if (pushProgressEvent) {
+            pushProgressEvent({
+              eventType: "goal_updated",
+              value: { goalId: data._id }
+            });
+          }
+          return;
+        } catch (error) {
+          console.warn("API add failed, saving locally:", error.message);
+          setUseLocal(true);
+        }
+      }
+
+      // Fallback: add to local state
+      setGoals(prev => [localGoal, ...prev]);
+      setNewGoal("");
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   // ===============================
   // TOGGLE MAIN GOAL
   // ===============================
-  const toggleMainGoal = async (goal) => {
+  const toggleMainGoal = (goal) => withGoalLock(goal._id, async () => {
     const toggled = { ...goal, completed: !goal.completed };
 
     if (!useLocal) {
@@ -111,17 +141,17 @@ export default function StudyGoals() {
         });
 
         setGoals(prev =>
-          prev.map(g => g._id === goal._id ? updated : g)
+          prev.map(g => g._id === goal._id ? (updated || toggled) : g)
         );
-        
+
         // Log event for any toggle (recalculates percentage)
         if (pushProgressEvent) {
           pushProgressEvent({
             eventType: "goal_completed",
-            value: { goalId: goal._id, completed: updated.completed }
+            value: { goalId: goal._id, completed: updated?.completed }
           });
         }
-        
+
         return;
       } catch (error) {
         console.warn("API toggle failed, updating locally:", error.message);
@@ -133,12 +163,12 @@ export default function StudyGoals() {
     setGoals(prev =>
       prev.map(g => g._id === goal._id ? toggled : g)
     );
-  };
+  });
 
   // ===============================
   // DELETE GOAL
   // ===============================
-  const deleteGoal = async (id) => {
+  const deleteGoal = (id) => withGoalLock(id, async () => {
     if (!useLocal) {
       try {
         await api.delete(`/goals/${id}`);
@@ -150,7 +180,7 @@ export default function StudyGoals() {
         // Update progress bar
         if (pushProgressEvent) {
           pushProgressEvent({
-            eventType: "goal_completed",
+            eventType: "goal_updated",
             value: { goalId: id, deleted: true }
           });
         }
@@ -165,42 +195,20 @@ export default function StudyGoals() {
     setGoals(prev =>
       prev.filter(goal => goal._id !== id)
     );
-  };
-
-  // ===============================
-  // UPDATE DEADLINE
-  // ===============================
-  const updateGoalDate = async (goal, newDate) => {
-    const updated = { ...goal, targetDate: newDate };
-
-    if (!useLocal) {
-      try {
-        const serverUpdated = await api.put(`/goals/${goal._id}`, {
-          targetDate: newDate
-        });
-
-        setGoals(prev =>
-          prev.map(g => g._id === goal._id ? serverUpdated : g)
-        );
-        return;
-      } catch (error) {
-        console.warn("API date update failed, updating locally:", error.message);
-        setUseLocal(true);
-      }
-    }
-
-    // Fallback
-    setGoals(prev =>
-      prev.map(g => g._id === goal._id ? updated : g)
-    );
-  };
+  });
 
   // ===============================
   // HELPER
   // ===============================
   const getTimeLeft = (dateString) => {
     if (!dateString) return null;
-    const diff = new Date(dateString) - new Date();
+    // Deadlines are calendar dates: count down to the END of that local day,
+    // not to midnight UTC at its start.
+    const deadline = /^\d{4}-\d{2}-\d{2}$/.test(dateString)
+      ? new Date(`${dateString}T23:59:59`)
+      : new Date(dateString);
+    const diff = deadline - new Date();
+    if (Number.isNaN(diff)) return null;
     if (diff < 0) return "Overdue";
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
@@ -231,6 +239,7 @@ export default function StudyGoals() {
 
     input: {
       flex: 1,
+      minWidth: 0,
       padding: '14px',
       borderRadius: '12px',
       border: '1px solid var(--glass)',
@@ -265,24 +274,41 @@ export default function StudyGoals() {
     goalHeader: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center'
+      alignItems: 'center',
+      gap: '12px'
     },
 
     goalLeft: {
       display: 'flex',
       alignItems: 'center',
-      gap: '14px'
+      gap: '14px',
+      minWidth: 0
     },
 
     checkbox: {
       cursor: 'pointer',
       display: 'flex',
-      alignItems: 'center'
+      alignItems: 'center',
+      background: 'none',
+      border: 'none',
+      padding: 0,
+      flexShrink: 0
+    },
+
+    iconBtn: {
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      background: 'none',
+      border: 'none',
+      padding: 4,
+      flexShrink: 0
     },
 
     goalText: {
       fontSize: '1rem',
-      fontWeight: '500'
+      fontWeight: '500',
+      overflowWrap: 'anywhere'
     },
 
     deadline: {
@@ -293,7 +319,7 @@ export default function StudyGoals() {
 
     emptyState: {
       textAlign: 'center',
-      opacity: 0.5,
+      color: 'var(--text-secondary)',
       padding: '50px',
       fontSize: '0.95rem'
     }
@@ -310,13 +336,21 @@ export default function StudyGoals() {
       <div style={styles.inputRow}>
         <input
           type="text"
+          aria-label="New goal"
+          maxLength={500}
           value={newGoal}
           onChange={(e) => setNewGoal(e.target.value)}
           placeholder="Add a new goal..."
-          onKeyDown={(e) => e.key === 'Enter' && addGoal()}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.repeat) addGoal(); }}
           style={styles.input}
         />
-        <button onClick={addGoal} style={styles.addBtn}>
+        <button
+          type="button"
+          onClick={addGoal}
+          disabled={isAdding}
+          aria-label="Add goal"
+          style={{ ...styles.addBtn, opacity: isAdding ? 0.6 : 1 }}
+        >
           <Plus size={18} />
         </button>
       </div>
@@ -332,7 +366,11 @@ export default function StudyGoals() {
         >
           <div style={styles.goalHeader}>
             <div style={styles.goalLeft}>
-              <div
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={!!goal.completed}
+                aria-label={`Mark "${goal.text}" as ${goal.completed ? 'not done' : 'done'}`}
                 onClick={() => toggleMainGoal(goal)}
                 style={styles.checkbox}
               >
@@ -340,7 +378,7 @@ export default function StudyGoals() {
                   ? <CheckCircle size={22} color="var(--accent-primary)" />
                   : <Circle size={22} color="var(--text-secondary)" />
                 }
-              </div>
+              </button>
 
               <span
                 style={{
@@ -352,12 +390,14 @@ export default function StudyGoals() {
               </span>
             </div>
 
-            <Trash2
-              size={18}
-              color="var(--text-secondary)"
-              style={{ cursor: 'pointer', transition: "0.2s ease" }}
+            <button
+              type="button"
+              aria-label={`Delete goal "${goal.text}"`}
               onClick={() => deleteGoal(goal._id)}
-            />
+              style={styles.iconBtn}
+            >
+              <Trash2 size={18} color="var(--text-secondary)" style={{ transition: "0.2s ease" }} />
+            </button>
           </div>
 
           {goal.targetDate && (

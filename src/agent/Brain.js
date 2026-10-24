@@ -1,4 +1,5 @@
 import { api } from "../services/apiClient";
+import { validateAction, MAX_TIMER_MINUTES } from "./actions";
 
 /**
  * Centralized AI Brain: control + access over the entire app, and raw generation for features.
@@ -24,9 +25,14 @@ export class Brain {
     const lower = input.toLowerCase().trim();
     
     if ((lower.includes("start") || lower.includes("set")) && lower.includes("timer")) {
-      const match = lower.match(/(\d+)\s*min/);
-      const minutes = match ? parseInt(match[1]) : 25;
-      return { useAI: false, text: `I've set a ${minutes} minute focus timer for you!`, action: { type: 'SET_TIMER', minutes } };
+      const minMatch = lower.match(/(\d+)\s*min/);
+      const hourMatch = lower.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\b/);
+      const minutes = minMatch ? parseInt(minMatch[1], 10) : hourMatch ? Math.round(parseFloat(hourMatch[1]) * 60) : 25;
+      const action = validateAction({ type: 'SET_TIMER', minutes });
+      if (!action) {
+        return { useAI: false, text: `Timers can be between 1 and ${MAX_TIMER_MINUTES} minutes.` };
+      }
+      return { useAI: false, text: `I've set a ${action.minutes} minute focus timer for you!`, action };
     }
     
     if ((lower.includes("stop") || lower.includes("pause")) && lower.includes("timer")) {
@@ -75,8 +81,10 @@ export class Brain {
 
     try {
       const data = await api.post("/ai/think", { userInput, context });
-      if (data.action) await this.dispatch(data.action);
-      return data.text || "";
+      // Model output is untrusted: only dispatch allowlisted, in-range actions
+      const action = validateAction(data?.action);
+      if (action) await this.dispatch(action);
+      return data?.text || "";
     } catch (error) {
       console.error("AI think failed", error);
       return "I couldn't understand that command, my brain is temporarily offline!";
@@ -128,9 +136,20 @@ export class Brain {
   }
 
   /**
+   * Raw generation that resolves to the model's text and REJECTS on failure or
+   * empty output, so callers can fall back to their manual implementations.
+   */
+  async generateWithRouter(prompt) {
+    const data = await api.post("/ai/generate", { prompt });
+    const text = typeof data?.response === "string" ? data.response : "";
+    if (!text.trim()) throw new Error("Empty AI response");
+    return text;
+  }
+
+  /**
    * Raw generation for features.
    */
-  async generateContent(prompt, options = {}) {
+  async generateContent(prompt) {
     try {
       const data = await api.post("/ai/generate", { prompt });
       return {
@@ -146,12 +165,13 @@ export class Brain {
 
   cleanAndParseJSON(text) {
     try {
-      let cleaned = text.replace(/```json|```/g, "").trim();
+      let cleaned = String(text ?? "").replace(/```json|```/g, "").trim();
       const start = cleaned.indexOf("{");
       const end = cleaned.lastIndexOf("}");
       if (start === -1 || end === -1) throw new Error("No JSON found");
       const jsonStr = cleaned
         .substring(start, end + 1)
+        // eslint-disable-next-line no-control-regex -- strip control chars models sometimes emit
         .replace(/[\u0000-\u001F\u007F-\u009F]/g, " ")
         .replace(/,\s*}/g, "}")
         .replace(/,\s*]/g, "]");

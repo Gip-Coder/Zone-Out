@@ -1,32 +1,46 @@
-import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useContext } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { ToastContext } from './context/ToastContext';
 import { useProgressContext } from './context/ProgressContext';
 import Timer from './components/Timer';
 import MusicPlayer from './components/MusicPlayer';
-import StudyGoals from './components/StudyGoals';
-import NotesSection from './components/NotesSection';
 import Auth from './components/Auth';
-import Header from './components/Header';
 import Layout from './components/Layout';
 import { Music, Timer as TimerIcon } from 'lucide-react';
 import { motion } from "framer-motion";
 import { Brain, Chatbot } from './agent';
+import { validateAction } from './agent/actions';
 import Widget from './components/Widget';
 import { api } from './services/apiClient';
-import Dashboard from './pages/Dashboard';
-import TimelinePage from './pages/TimelinePage';
-import CourseVaultPage from './pages/CourseVaultPage';
-import AIPage from './pages/AIPage';
-import PlaceholderPage from './pages/PlaceholderPage';
-import FlashcardsPage from './pages/FlashcardsPage';
-import ProgressPage from './pages/ProgressPage';
-import ProfilePage from './pages/ProfilePage';
-import SettingsPage from './pages/SettingsPage';
-import StudyGroupsPage from './pages/StudyGroupsPage';
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const TimelinePage = React.lazy(() => import('./pages/TimelinePage'));
+const CourseVaultPage = React.lazy(() => import('./pages/CourseVaultPage'));
+const AIPage = React.lazy(() => import('./pages/AIPage'));
+const PlaceholderPage = React.lazy(() => import('./pages/PlaceholderPage'));
+const FlashcardsPage = React.lazy(() => import('./pages/FlashcardsPage'));
+const ProgressPage = React.lazy(() => import('./pages/ProgressPage'));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
+const StudyGroupsPage = React.lazy(() => import('./pages/StudyGroupsPage'));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
+
+const DEFAULT_WIDGETS = ['timeline', 'vault', 'timer', 'music', 'ai'];
+
+// Floating widgets open beside the fixed desktop sidebar (260px, see index.css)
+// rather than on top of its navigation links, and below the 70px header.
+const SIDEBAR_BREAKPOINT = 900;
+const SIDEBAR_WIDTH = 260;
+const widgetStartPosition = (height, offset = 0) => ({
+  x: (window.innerWidth > SIDEBAR_BREAKPOINT ? SIDEBAR_WIDTH + 20 : 16) + offset,
+  y: Math.max(80, window.innerHeight - height - 30),
+});
+
 export default function App() {
   const { info: toastInfo } = useContext(ToastContext);
-  const { pushProgressEvent } = useProgressContext();
+  // Declared before the AI dispatcher and app-state snapshot that use them
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { pushProgressEvent, refreshProgress, resetProgress } = useProgressContext();
 
   // =============================
   // 🔐 AUTH STATE
@@ -55,23 +69,29 @@ export default function App() {
     } catch {
       setUser(null);
     }
-  }, [isAuthenticated]);
+    // ProgressProvider sits above App and does not re-mount on login, so load
+    // the signed-in user's progress here.
+    refreshProgress?.();
+  }, [isAuthenticated, refreshProgress]);
 
   // =============================
   // GLOBAL APP STATE
   // =============================
   const [goals, setGoals] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [activeTab, setActiveTab] = useState('goals');
   const [activeCourseId, setActiveCourseId] = useState(null);
 
   const [focusTime, setFocusTime] = useState(25 * 60);
+  const [sessionDuration, setSessionDuration] = useState(25 * 60);
   const [isFocusRunning, setIsFocusRunning] = useState(false);
   const [timerHasStarted, setTimerHasStarted] = useState(false);
 
   const [isTimerWidgetOpen, setIsTimerWidgetOpen] = useState(false);
   const [isMusicWidgetOpen, setIsMusicWidgetOpen] = useState(false);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+
+  // Unified AI panel
+  const [showAI, setShowAI] = useState(false);
 
   // =============================
   // DASHBOARD CARD → WIDGET BRIDGE
@@ -95,14 +115,22 @@ export default function App() {
   // =============================
   // AI DISPATCHER (Brain executes these)
   // =============================
-  const handleAiAction = async (action) => {
+  const handleAiAction = async (rawAction) => {
+    // Model output is untrusted: ignore anything off the allowlist
+    const action = validateAction(rawAction);
     if (!action) return;
 
     switch (action.type) {
-      case 'SET_TIMER':
-        setFocusTime(action.minutes * 60);
+      case 'SET_TIMER': {
+        const seconds = action.minutes * 60;
+        setFocusTime(seconds);
+        setSessionDuration(seconds);
+        // The countdown runs inside the timer widget, so it must be open
+        setIsTimerWidgetOpen(true);
+        setTimerHasStarted(true);
         setIsFocusRunning(true);
         break;
+      }
 
       case 'PAUSE_TIMER':
       case 'STOP_TIMER':
@@ -110,6 +138,7 @@ export default function App() {
         break;
 
       case 'NAVIGATE':
+        if (action.view === 'dashboard') navigate('/');
         if (action.view === 'goals') navigate('/timeline');
         if (action.view === 'notes') navigate('/course-vault');
         if (action.view === 'course' && action.courseId) {
@@ -121,16 +150,17 @@ export default function App() {
       case 'ADD_GOAL':
         try {
           const data = await api.post("/goals", {
-             text: action.title,
-             targetDate: action.date || "",
-             plan: action.plan || []
+            text: action.title,
+            targetDate: action.date || "",
+            plan: action.plan
           });
-          setGoals(prev => [data, ...prev]);
+          if (data) setGoals(prev => [data, ...prev]);
           if (pushProgressEvent) {
-             pushProgressEvent({ eventType: "goal_completed", value: { goalId: data._id } });
+            pushProgressEvent({ eventType: "goal_updated", value: { goalId: data?._id } });
           }
         } catch (e) {
           console.warn("AI Goal Creation failed:", e.message);
+          toastInfo("Couldn't add that goal right now.");
         }
         break;
 
@@ -144,10 +174,13 @@ export default function App() {
   // =============================
   const getAppStateRef = useRef(() => ({}));
   const dispatchRef = useRef(() => { });
+  // Refreshed after every render so the Brain always reads current state.
+  useLayoutEffect(() => {
   getAppStateRef.current = () => ({
     activeTab: location.pathname === '/timeline' ? 'goals' : location.pathname === '/course-vault' ? 'notes' : null,
     currentPath: location.pathname,
     activeCourseId,
+    activeCourse: courses.find(c => c.id === activeCourseId) || null,
     focusTime,
     isFocusRunning,
     goals,
@@ -161,36 +194,43 @@ export default function App() {
             return parsed.dashboardLayout.map(w => w.id);
           }
         }
-      } catch (e) { }
-      return ['timeline', 'vault', 'timer', 'music', 'ai'];
+      } catch {
+        // Corrupt cached user — fall back to the default widget set
+      }
+      return DEFAULT_WIDGETS;
     })(),
   });
   dispatchRef.current = handleAiAction;
+  });
 
-  const brain = useMemo(
-    () => new Brain(
-      () => getAppStateRef.current?.(),
-      (action) => dispatchRef.current?.(action)
-    ),
-    []
-  );
+  // Other AI surfaces (Course Vault's Study Buddy) forward timer actions here,
+  // because the focus timer is owned by App.
+  useEffect(() => {
+    const onForwardedAction = (e) => dispatchRef.current?.(e.detail);
+    window.addEventListener('zoneout:ai-action', onForwardedAction);
+    return () => window.removeEventListener('zoneout:ai-action', onForwardedAction);
+  }, []);
 
-  // =============================
-  // UNIFIED AI PANEL STATE
-  // =============================
-  const [showAI, setShowAI] = useState(false);
+  // The Brain only invokes these callbacks from chat event handlers, never
+  // during render, so reading the refs inside them is safe.
+  // eslint-disable-next-line react-hooks/refs
+  const [brain] = useState(() => new Brain(
+    () => getAppStateRef.current?.(),
+    (action) => dispatchRef.current?.(action)
+  ));
 
-  const navigate = useNavigate();
-  const location = useLocation();
+
 
   const handleSessionComplete = async (durationMinutes) => {
     if (!durationMinutes) return;
-    try {
-      await pushProgressEvent({
-        eventType: "focus_session_completed",
-        value: { minutes: Math.round(durationMinutes) }
-      });
-    } catch (_) { }
+    // Leave the minimal running view so the widget's close control returns
+    setTimerHasStarted(false);
+    toastInfo("Focus session complete!");
+    // pushProgressEvent handles and logs its own failures
+    await pushProgressEvent({
+      eventType: "focus_session_completed",
+      value: { minutes: Math.round(durationMinutes) }
+    });
   };
 
 
@@ -206,6 +246,10 @@ export default function App() {
     setUser(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    // Don't show the previous user's numbers to the next person who signs in
+    resetProgress?.();
+    setGoals([]);
+    setIsFocusRunning(false);
     toastInfo("Logged out.");
     setIsAuthenticated(false);
   };
@@ -222,18 +266,21 @@ export default function App() {
     >
       <Layout user={user} onLogout={handleLogout}>
         <div className="page-container">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/timeline" element={<TimelinePage goals={goals} setGoals={setGoals} />} />
-            <Route path="/course-vault" element={<CourseVaultPage courses={courses} setCourses={setCourses} activeCourseId={activeCourseId} setActiveCourseId={setActiveCourseId} />} />
-            <Route path="/ai" element={<AIPage />} />
-            <Route path="/flashcards" element={<FlashcardsPage />} />
-            <Route path="/progress" element={<ProgressPage />} />
-            <Route path="/study-groups" element={<StudyGroupsPage />} />
-            <Route path="/resources" element={<PlaceholderPage title="Resources" />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-          </Routes>
+          <React.Suspense fallback={<div style={{ padding: 32, textAlign: 'center', opacity: 0.8, color: 'var(--text-secondary)' }}>Loading Page...</div>}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/timeline" element={<TimelinePage goals={goals} setGoals={setGoals} />} />
+              <Route path="/course-vault" element={<CourseVaultPage courses={courses} setCourses={setCourses} activeCourseId={activeCourseId} setActiveCourseId={setActiveCourseId} />} />
+              <Route path="/ai" element={<AIPage />} />
+              <Route path="/flashcards" element={<FlashcardsPage />} />
+              <Route path="/progress" element={<ProgressPage />} />
+              <Route path="/study-groups" element={<StudyGroupsPage />} />
+              <Route path="/resources" element={<PlaceholderPage title="Resources" />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </React.Suspense>
         </div>
       </Layout>
 
@@ -258,7 +305,7 @@ export default function App() {
             setTimerHasStarted(false);
             setIsFocusRunning(false);
           }}
-          defaultPosition={{ x: 30, y: window.innerHeight - 450 }}
+          defaultPosition={widgetStartPosition(420)}
           minWidth={200}
           minHeight={200}
           baseWidth={360}
@@ -270,6 +317,8 @@ export default function App() {
             <Timer
               focusTime={focusTime}
               setFocusTime={setFocusTime}
+              sessionDuration={sessionDuration}
+              setSessionDuration={setSessionDuration}
               isRunning={isFocusRunning}
               setIsRunning={setIsFocusRunning}
               onSessionComplete={handleSessionComplete}
@@ -283,7 +332,7 @@ export default function App() {
         <Widget
           title="Focus Music"
           onClose={() => setIsMusicWidgetOpen(false)}
-          defaultPosition={{ x: 80, y: window.innerHeight - 480 }}
+          defaultPosition={widgetStartPosition(570, 50)}
           minWidth={280}
           minHeight={450}
           baseWidth={450}
@@ -305,54 +354,6 @@ export default function App() {
 // =============================
 // STYLES
 // =============================
-
-const leftColumn = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '28px',
-  width: '380px'
-};
-
-const rightColumn = {
-  flex: 1,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '24px',
-  overflow: 'hidden'
-};
-
-const tabSwitcher = {
-  display: 'flex',
-  background: 'var(--bg-secondary)',
-  borderRadius: 'var(--radius-lg)',
-  padding: '6px',
-  border: '1px solid var(--glass)',
-  boxShadow: '0 8px 30px rgba(0,0,0,0.25)'
-};
-
-const activeTabStyle = {
-  flex: 1,
-  border: 'none',
-  background: 'var(--btn-primary-bg)',
-  color: 'var(--btn-primary-text)',
-  padding: '12px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '8px',
-  fontWeight: '600',
-  borderRadius: 'var(--radius-md)',
-  boxShadow: 'var(--glow-soft)'
-};
-
-const tabStyle = {
-  ...activeTabStyle,
-  background: 'transparent',
-  boxShadow: 'none',
-  color: 'var(--text-secondary)'
-};
-
 
 const widgetToggleGroupStyle = {
   position: 'fixed',

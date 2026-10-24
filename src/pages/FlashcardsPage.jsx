@@ -43,18 +43,25 @@ export default function FlashcardsPage() {
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => {
-    setSelectedModuleIndex("");
+  // Changing the course or module discards the current deck. Done in the change
+  // handlers (not effects) so there is no extra render with a stale deck.
+  const clearDeck = () => {
     setCards([]);
     setCurrentIndex(0);
     setFlipped(false);
-  }, [selectedCourseId]);
+    setError(null);
+  };
 
-  useEffect(() => {
-    setCards([]);
-    setCurrentIndex(0);
-    setFlipped(false);
-  }, [selectedModuleIndex]);
+  const handleCourseChange = (courseId) => {
+    setSelectedCourseId(courseId);
+    setSelectedModuleIndex("");
+    clearDeck();
+  };
+
+  const handleModuleChange = (moduleIndex) => {
+    setSelectedModuleIndex(moduleIndex);
+    clearDeck();
+  };
 
   const handleGenerate = async () => {
     if (!selectedCourse || !selectedModule) return;
@@ -109,10 +116,11 @@ export default function FlashcardsPage() {
 
       <div style={cardStyle}>
         <div style={rowStyle}>
-          <label style={labelStyle}>Course</label>
+          <label htmlFor="flashcards-course" style={labelStyle}>Course</label>
           <select
+            id="flashcards-course"
             value={selectedCourseId}
-            onChange={(e) => setSelectedCourseId(e.target.value)}
+            onChange={(e) => handleCourseChange(e.target.value)}
             style={selectStyle}
           >
             <option value="">Select course…</option>
@@ -122,10 +130,11 @@ export default function FlashcardsPage() {
           </select>
         </div>
         <div style={rowStyle}>
-          <label style={labelStyle}>Module</label>
+          <label htmlFor="flashcards-module" style={labelStyle}>Module</label>
           <select
+            id="flashcards-module"
             value={selectedModuleIndex}
-            onChange={(e) => setSelectedModuleIndex(e.target.value)}
+            onChange={(e) => handleModuleChange(e.target.value)}
             style={selectStyle}
             disabled={!selectedCourse}
           >
